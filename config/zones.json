@@ -2457,6 +2457,423 @@
    ]
   },
   {
+   "id": "ma_wheat",
+   "nom": "Chaouia, Saïs, Doukkala",
+   "pays": "Maroc",
+   "continent": "Afrique",
+   "cultures": [
+    "Blé tendre",
+    "Blé dur"
+   ],
+   "contrats": [
+    "Euronext Blé meunier (EBM)"
+   ],
+   "poids_mondial": "Maroc : grand importateur de blé ; une mauvaise récolte fait monter les achats sur le marché européen",
+   "points": [
+    [
+     33.0,
+     -7.6,
+     3
+    ],
+    [
+     33.9,
+     -5.5,
+     2
+    ],
+    [
+     32.7,
+     -8.4,
+     2
+    ]
+   ],
+   "calendrier": [
+    {
+     "culture": "Blé",
+     "etape": "Semis",
+     "mois": [
+      11,
+      12
+     ],
+     "niveau": 2
+    },
+    {
+     "culture": "Blé",
+     "etape": "Tallage, montaison",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Épiaison, remplissage",
+     "mois": [
+      4
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Récolte",
+     "mois": [
+      5,
+      6
+     ],
+     "niveau": 1
+    }
+   ],
+   "regles": [
+    {
+     "id": "ma_semis",
+     "culture": "Blé",
+     "mois": [
+      10,
+      11,
+      12
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 40,
+     "severe": 20,
+     "severite": 1,
+     "phenomene": "Pluies d'automne en retard",
+     "mecanisme": "sans pluie, les semis de blé pluvial sont repoussés ou lèvent mal",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "ma_hiver",
+     "culture": "Blé",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 50,
+     "severe": 25,
+     "severite": 2,
+     "phenomene": "Hiver sec",
+     "mecanisme": "le blé pluvial dépend entièrement des pluies d'hiver pour taller et monter en épi",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "ma_chaleur",
+     "culture": "Blé",
+     "mois": [
+      4,
+      5
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 3,
+     "severe": 5,
+     "severite": 2,
+     "phenomene": "Vent chaud au remplissage",
+     "mecanisme": "un coup de chaleur au remplissage échaude les grains",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 32
+    }
+   ]
+  },
+  {
+   "id": "maghreb_wheat",
+   "nom": "Hauts Plateaux (Sétif, Tiaret) et Nord tunisien",
+   "pays": "Algérie / Tunisie",
+   "continent": "Afrique",
+   "cultures": [
+    "Blé dur",
+    "Blé tendre"
+   ],
+   "contrats": [
+    "Euronext Blé meunier (EBM)"
+   ],
+   "poids_mondial": "Algérie : parmi les 5 premiers importateurs mondiaux de blé",
+   "points": [
+    [
+     36.2,
+     5.4,
+     2
+    ],
+    [
+     35.4,
+     1.3,
+     2
+    ],
+    [
+     36.7,
+     9.2,
+     1.5
+    ]
+   ],
+   "calendrier": [
+    {
+     "culture": "Blé",
+     "etape": "Semis",
+     "mois": [
+      11,
+      12
+     ],
+     "niveau": 2
+    },
+    {
+     "culture": "Blé",
+     "etape": "Tallage, montaison",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Épiaison, remplissage",
+     "mois": [
+      4,
+      5
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Récolte",
+     "mois": [
+      6,
+      7
+     ],
+     "niveau": 1
+    }
+   ],
+   "regles": [
+    {
+     "id": "mg_semis",
+     "culture": "Blé",
+     "mois": [
+      10,
+      11,
+      12
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 40,
+     "severe": 20,
+     "severite": 1,
+     "phenomene": "Pluies d'automne en retard",
+     "mecanisme": "sans pluie, les semis de blé pluvial sont repoussés ou lèvent mal",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "mg_hiver",
+     "culture": "Blé",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 50,
+     "severe": 25,
+     "severite": 2,
+     "phenomene": "Hiver sec",
+     "mecanisme": "le blé pluvial dépend entièrement des pluies d'hiver pour taller et monter en épi",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "mg_chaleur",
+     "culture": "Blé",
+     "mois": [
+      4,
+      5
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 3,
+     "severe": 5,
+     "severite": 2,
+     "phenomene": "Vent chaud au remplissage",
+     "mecanisme": "un coup de chaleur au remplissage échaude les grains",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 33
+    },
+    {
+     "id": "mg_gel",
+     "culture": "Blé",
+     "mois": [
+      3,
+      4
+     ],
+     "metrique": "tn_fc7_min",
+     "op": "<",
+     "seuil": -2,
+     "severe": -5,
+     "severite": 2,
+     "phenomene": "Gel tardif à la montaison",
+     "mecanisme": "le gel détruit l'épi en formation",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "semaines"
+    }
+   ]
+  },
+  {
+   "id": "eg_delta",
+   "nom": "Delta du Nil",
+   "pays": "Égypte",
+   "continent": "Afrique",
+   "cultures": [
+    "Blé tendre",
+    "Coton",
+    "Riz",
+    "Oranges"
+   ],
+   "contrats": [
+    "Euronext Blé meunier (EBM)",
+    "ICE Cotton No.2 (CT)",
+    "ICE FCOJ (OJ)"
+   ],
+   "poids_mondial": "Égypte : 1er importateur mondial de blé et 1er exportateur mondial d'oranges",
+   "points": [
+    [
+     31.1,
+     30.9,
+     2
+    ],
+    [
+     30.8,
+     31.0,
+     2
+    ],
+    [
+     30.6,
+     30.2,
+     1.5
+    ]
+   ],
+   "calendrier": [
+    {
+     "culture": "Blé",
+     "etape": "Semis",
+     "mois": [
+      11,
+      12
+     ],
+     "niveau": 1
+    },
+    {
+     "culture": "Blé",
+     "etape": "Remplissage",
+     "mois": [
+      3,
+      4
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Oranges",
+     "etape": "Floraison",
+     "mois": [
+      3,
+      4
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Coton, riz",
+     "etape": "Croissance",
+     "mois": [
+      6,
+      7,
+      8
+     ],
+     "niveau": 2
+    },
+    {
+     "culture": "Coton, riz",
+     "etape": "Récolte",
+     "mois": [
+      9,
+      10
+     ],
+     "niveau": 1
+    }
+   ],
+   "regles": [
+    {
+     "id": "eg_khamsin",
+     "culture": "Blé",
+     "mois": [
+      3,
+      4
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 3,
+     "severe": 5,
+     "severite": 2,
+     "phenomene": "Khamsin, vent chaud du désert",
+     "mecanisme": "la chaleur de printemps échaude le blé irrigué en remplissage",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 35
+    },
+    {
+     "id": "eg_oranges",
+     "culture": "Oranges",
+     "mois": [
+      3,
+      4
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 3,
+     "severe": 5,
+     "severite": 2,
+     "phenomene": "Chaleur à la floraison des orangers",
+     "mecanisme": "au-delà de 36 °C les fleurs et jeunes fruits tombent",
+     "contrat": "ICE FCOJ (OJ)",
+     "direction": "haussière",
+     "horizon": "campagne suivante",
+     "t": 36
+    },
+    {
+     "id": "eg_coton",
+     "culture": "Coton",
+     "mois": [
+      7,
+      8
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 4,
+     "severe": 7,
+     "severite": 1,
+     "phenomene": "Canicule estivale",
+     "mecanisme": "au-delà de 42 °C les capsules de coton tombent malgré l'irrigation",
+     "contrat": "ICE Cotton No.2 (CT)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 42
+    }
+   ]
+  },
+  {
    "id": "fr_wheat",
    "nom": "Beauce, Picardie, Champagne",
    "pays": "France",
@@ -3203,6 +3620,541 @@
      "contrat": "Prix FOB mer Noire",
      "direction": "haussière",
      "horizon": "semaines"
+    }
+   ]
+  },
+  {
+   "id": "tr_anatolia",
+   "nom": "Anatolie centrale (Konya, Ankara, Eskişehir)",
+   "pays": "Turquie",
+   "continent": "Asie",
+   "cultures": [
+    "Blé tendre",
+    "Betterave sucrière"
+   ],
+   "contrats": [
+    "Euronext Blé meunier (EBM)",
+    "Sucre blanc Londres (No.5)"
+   ],
+   "poids_mondial": "Turquie : 1er exportateur mondial de farine, dépend de ses récoltes de blé",
+   "points": [
+    [
+     37.9,
+     32.5,
+     3
+    ],
+    [
+     39.6,
+     32.1,
+     2
+    ],
+    [
+     39.8,
+     30.5,
+     1.5
+    ]
+   ],
+   "calendrier": [
+    {
+     "culture": "Blé",
+     "etape": "Semis",
+     "mois": [
+      10,
+      11
+     ],
+     "niveau": 2
+    },
+    {
+     "culture": "Blé",
+     "etape": "Montaison",
+     "mois": [
+      3,
+      4,
+      5
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Remplissage",
+     "mois": [
+      6
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Récolte",
+     "mois": [
+      7
+     ],
+     "niveau": 1
+    },
+    {
+     "culture": "Betterave",
+     "etape": "Croissance",
+     "mois": [
+      6,
+      7,
+      8,
+      9
+     ],
+     "niveau": 2
+    }
+   ],
+   "regles": [
+    {
+     "id": "tr_semis",
+     "culture": "Blé",
+     "mois": [
+      10,
+      11,
+      12
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 40,
+     "severe": 20,
+     "severite": 1,
+     "phenomene": "Pluies d'automne en retard",
+     "mecanisme": "sans pluie, les semis de blé pluvial sont repoussés ou lèvent mal",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "tr_hiver",
+     "culture": "Blé",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 50,
+     "severe": 25,
+     "severite": 2,
+     "phenomene": "Hiver sec",
+     "mecanisme": "le blé pluvial dépend entièrement des pluies d'hiver pour taller et monter en épi",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "tr_chaleur",
+     "culture": "Blé",
+     "mois": [
+      6
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 3,
+     "severe": 5,
+     "severite": 2,
+     "phenomene": "Vent chaud au remplissage",
+     "mecanisme": "un coup de chaleur au remplissage échaude les grains",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 34
+    },
+    {
+     "id": "tr_gel",
+     "culture": "Blé",
+     "mois": [
+      3,
+      4
+     ],
+     "metrique": "tn_fc7_min",
+     "op": "<",
+     "seuil": -2,
+     "severe": -5,
+     "severite": 2,
+     "phenomene": "Gel tardif à la montaison",
+     "mecanisme": "le gel détruit l'épi en formation",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "semaines"
+    },
+    {
+     "id": "tr_betterave",
+     "culture": "Betterave",
+     "mois": [
+      7,
+      8
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 5,
+     "severe": 8,
+     "severite": 1,
+     "phenomene": "Été brûlant",
+     "mecanisme": "la chaleur freine la croissance des betteraves",
+     "contrat": "Sucre blanc Londres (No.5)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 36
+    }
+   ]
+  },
+  {
+   "id": "tr_cotton",
+   "nom": "Çukurova et plaine de Harran",
+   "pays": "Turquie",
+   "continent": "Asie",
+   "cultures": [
+    "Coton"
+   ],
+   "contrats": [
+    "ICE Cotton No.2 (CT)"
+   ],
+   "poids_mondial": "Turquie : parmi les 7 premiers producteurs mondiaux de coton",
+   "points": [
+    [
+     36.9,
+     35.3,
+     2
+    ],
+    [
+     37.0,
+     39.0,
+     2
+    ],
+    [
+     37.9,
+     40.2,
+     1
+    ]
+   ],
+   "calendrier": [
+    {
+     "culture": "Coton",
+     "etape": "Semis",
+     "mois": [
+      4,
+      5
+     ],
+     "niveau": 2
+    },
+    {
+     "culture": "Coton",
+     "etape": "Floraison, capsules",
+     "mois": [
+      7,
+      8
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Coton",
+     "etape": "Récolte",
+     "mois": [
+      9,
+      10,
+      11
+     ],
+     "niveau": 1
+    }
+   ],
+   "regles": [
+    {
+     "id": "tc_chaleur",
+     "culture": "Coton",
+     "mois": [
+      7,
+      8
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 4,
+     "severe": 7,
+     "severite": 2,
+     "phenomene": "Canicule à la floraison",
+     "mecanisme": "au-delà de 40 °C les capsules tombent",
+     "contrat": "ICE Cotton No.2 (CT)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 40
+    },
+    {
+     "id": "tc_pluie_recolte",
+     "culture": "Coton",
+     "mois": [
+      9,
+      10,
+      11
+     ],
+     "metrique": "pr_fc14_pct",
+     "op": ">",
+     "seuil": 250,
+     "severe": 400,
+     "severite": 1,
+     "phenomene": "Pluies à la récolte",
+     "mecanisme": "la fibre mouillée perd en qualité",
+     "contrat": "ICE Cotton No.2 (CT)",
+     "direction": "haussière",
+     "horizon": "jours"
+    }
+   ]
+  },
+  {
+   "id": "fertile_crescent",
+   "nom": "Croissant fertile (Hassaké, Ninive, Erbil)",
+   "pays": "Syrie / Irak",
+   "continent": "Asie",
+   "cultures": [
+    "Blé dur",
+    "Blé tendre"
+   ],
+   "contrats": [
+    "Euronext Blé meunier (EBM)",
+    "CBOT Wheat (ZW)"
+   ],
+   "poids_mondial": "Syrie et Irak : production très sensible à la sécheresse, qui fait bondir leurs importations",
+   "points": [
+    [
+     36.5,
+     40.7,
+     2
+    ],
+    [
+     36.3,
+     43.1,
+     2
+    ],
+    [
+     36.2,
+     44.0,
+     1.5
+    ]
+   ],
+   "calendrier": [
+    {
+     "culture": "Blé",
+     "etape": "Semis",
+     "mois": [
+      11,
+      12
+     ],
+     "niveau": 2
+    },
+    {
+     "culture": "Blé",
+     "etape": "Tallage, montaison",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Remplissage",
+     "mois": [
+      4,
+      5
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Récolte",
+     "mois": [
+      5,
+      6
+     ],
+     "niveau": 1
+    }
+   ],
+   "regles": [
+    {
+     "id": "fc_semis",
+     "culture": "Blé",
+     "mois": [
+      10,
+      11,
+      12
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 40,
+     "severe": 20,
+     "severite": 1,
+     "phenomene": "Pluies d'automne en retard",
+     "mecanisme": "sans pluie, les semis de blé pluvial sont repoussés ou lèvent mal",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "fc_hiver",
+     "culture": "Blé",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 50,
+     "severe": 25,
+     "severite": 2,
+     "phenomene": "Hiver sec",
+     "mecanisme": "le blé pluvial dépend entièrement des pluies d'hiver pour taller et monter en épi",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "fc_chaleur",
+     "culture": "Blé",
+     "mois": [
+      4,
+      5
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 3,
+     "severe": 5,
+     "severite": 2,
+     "phenomene": "Vent chaud au remplissage",
+     "mecanisme": "un coup de chaleur au remplissage échaude les grains",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 35
+    }
+   ]
+  },
+  {
+   "id": "ir_wheat",
+   "nom": "Golestan, Khuzestan, Fars",
+   "pays": "Iran",
+   "continent": "Asie",
+   "cultures": [
+    "Blé tendre"
+   ],
+   "contrats": [
+    "Euronext Blé meunier (EBM)",
+    "CBOT Wheat (ZW)"
+   ],
+   "poids_mondial": "Iran : un des grands producteurs de blé du Moyen-Orient, gros acheteur en année sèche",
+   "points": [
+    [
+     37.0,
+     54.5,
+     2
+    ],
+    [
+     31.5,
+     48.8,
+     2
+    ],
+    [
+     29.6,
+     52.5,
+     1.5
+    ]
+   ],
+   "calendrier": [
+    {
+     "culture": "Blé",
+     "etape": "Semis",
+     "mois": [
+      10,
+      11,
+      12
+     ],
+     "niveau": 2
+    },
+    {
+     "culture": "Blé",
+     "etape": "Tallage, montaison",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Remplissage",
+     "mois": [
+      4,
+      5
+     ],
+     "niveau": 3
+    },
+    {
+     "culture": "Blé",
+     "etape": "Récolte",
+     "mois": [
+      5,
+      6
+     ],
+     "niveau": 1
+    }
+   ],
+   "regles": [
+    {
+     "id": "ir_semis",
+     "culture": "Blé",
+     "mois": [
+      10,
+      11,
+      12
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 40,
+     "severe": 20,
+     "severite": 1,
+     "phenomene": "Pluies d'automne en retard",
+     "mecanisme": "sans pluie, les semis de blé pluvial sont repoussés ou lèvent mal",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "ir_hiver",
+     "culture": "Blé",
+     "mois": [
+      1,
+      2,
+      3
+     ],
+     "metrique": "pr_obs30_pct",
+     "op": "<",
+     "seuil": 50,
+     "severe": 25,
+     "severite": 2,
+     "phenomene": "Hiver sec",
+     "mecanisme": "le blé pluvial dépend entièrement des pluies d'hiver pour taller et monter en épi",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "campagne suivante"
+    },
+    {
+     "id": "ir_chaleur",
+     "culture": "Blé",
+     "mois": [
+      4,
+      5
+     ],
+     "metrique": "n_tx_gt",
+     "op": ">=",
+     "seuil": 3,
+     "severe": 5,
+     "severite": 2,
+     "phenomene": "Vent chaud au remplissage",
+     "mecanisme": "un coup de chaleur au remplissage échaude les grains",
+     "contrat": "Euronext Blé meunier (EBM)",
+     "direction": "haussière",
+     "horizon": "semaines",
+     "t": 36
     }
    ]
   },
