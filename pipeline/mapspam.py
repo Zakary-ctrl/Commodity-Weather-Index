@@ -23,8 +23,14 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "mapspam_weights.json"
-URL = ("https://www.dropbox.com/scl/fi/asxrhdtpvu2kbymii5a6z/spam2020V2r2_global_production.csv.zip"
-       "?rlkey=lhoh7dpeskozqhuh7lli20udu&dl=1")
+_KEY = "scl/fi/asxrhdtpvu2kbymii5a6z/spam2020V2r2_global_production.csv.zip?rlkey=lhoh7dpeskozqhuh7lli20udu&st=zn9mh4wl"
+URLS = [  # Dropbox renvoie parfois une page web au lieu du fichier : on essaie plusieurs formes du lien
+    f"https://dl.dropboxusercontent.com/{_KEY}&dl=1",
+    f"https://www.dropbox.com/{_KEY}&dl=1",
+    f"https://www.dropbox.com/{_KEY}&raw=1",
+]
+UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"}
+VERSION = 2
 SOURCE = "MapSPAM 2020 v2.2 (IFPRI), production par culture sur grille de ~10 km"
 HALF_BOX = 0.75  # demi-côté du carré autour de chaque point, en degrés (~80 km)
 MIN_SHARE = 0.03  # un point garde toujours un poids minimal
@@ -52,17 +58,17 @@ def _codes_for(cultures: list[str], available: set[str]) -> list[str]:
 
 
 def _download() -> bytes:
-    last = ""
-    for attempt in range(3):
+    tried = []
+    for url in URLS:
         try:
-            r = requests.get(URL, timeout=600, allow_redirects=True)
+            r = requests.get(url, timeout=600, allow_redirects=True, headers=UA)
             if r.status_code == 200 and r.content[:2] == b"PK":
                 return r.content
-            last = f"HTTP {r.status_code}, {len(r.content)} octets"
+            tried.append(f"{url.split('/')[2]}: HTTP {r.status_code}, {len(r.content)} octets, {r.headers.get('content-type', '')}")
         except requests.RequestException as e:
-            last = str(e)
-        time.sleep(30)
-    raise RuntimeError("téléchargement MapSPAM impossible : " + last)
+            tried.append(f"{url.split('/')[2]}: {e}")
+        time.sleep(5)
+    raise RuntimeError("téléchargement MapSPAM impossible : " + " | ".join(tried))
 
 
 def _pick_csv(zf: zipfile.ZipFile) -> str:
@@ -138,7 +144,7 @@ def compute(zones: list[dict], log=print) -> dict:
         detail[z["id"]] = {"cultures": codes,
                            "production_t": [{c: round(sums[(z["id"], i)][c]) for c in codes} for i in range(n)]}
         log(f"  {z['id']:14} {codes} -> {weights[z['id']]}")
-    return {"source": SOURCE, "calcule_le": datetime.now(timezone.utc).isoformat(timespec="minutes"),
+    return {"version": VERSION, "source": SOURCE, "calcule_le": datetime.now(timezone.utc).isoformat(timespec="minutes"),
             "rayon_deg": HALF_BOX, "poids": weights, "detail": detail}
 
 
@@ -165,6 +171,8 @@ def ensure(zones: list[dict], log=print) -> bool:
         prev = json.loads(OUT.read_text())
         if "poids" in prev:
             return False
+        if prev.get("version") != VERSION:  # échec d'une ancienne version du script : on réessaie tout de suite
+            prev = {}
         last = datetime.fromisoformat(prev.get("essai", "2000-01-01T00:00+00:00"))
         if (datetime.now(timezone.utc) - last).total_seconds() < 86400:
             return False
@@ -173,7 +181,7 @@ def ensure(zones: list[dict], log=print) -> bool:
     except Exception as e:  # jamais bloquant pour le reste du calcul
         log(f"MapSPAM indisponible ({str(e)[:200]}), poids estimés conservés.")
         OUT.parent.mkdir(parents=True, exist_ok=True)
-        OUT.write_text(json.dumps({"essai": datetime.now(timezone.utc).isoformat(timespec="minutes"),
+        OUT.write_text(json.dumps({"version": VERSION, "essai": datetime.now(timezone.utc).isoformat(timespec="minutes"),
                                    "erreur": str(e)[:500]}))
         return False
     OUT.parent.mkdir(parents=True, exist_ok=True)
