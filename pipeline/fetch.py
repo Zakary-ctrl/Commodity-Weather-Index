@@ -26,7 +26,8 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
 STATE = ROOT / "data" / "state" / "quota.json"
 BUDGET_HOUR, BUDGET_DAY = 4500, 9500  # marge sous les limites 5 000/h et 10 000/jour
-PAUSE = 32  # secondes entre deux appels d'archive (limite par minute)
+PAUSE = 32  # secondes de pause par tranche de ~126 points (limite par minute)
+CHUNK = 32  # points par requête d'archive
 
 
 # ---------- points ----------
@@ -76,18 +77,26 @@ def budget_left() -> float:
     return min(BUDGET_HOUR - q["used_hour"], BUDGET_DAY - q["used_day"])
 
 
-def _get(url: str, params: dict, w: float, retries: int = 5) -> list:
+def _get(url: str, params: dict, w: float, retries: int = 4) -> list:
+    """Appel robuste : réessaie sur délai dépassé, coupure réseau ou erreur serveur.
+    Lève RuntimeError si l'appel échoue définitivement (l'appelant s'arrête proprement)."""
+    last = ""
     for attempt in range(retries):
-        r = requests.get(url, params=params, timeout=90)
+        try:
+            r = requests.get(url, params=params, timeout=180)
+        except requests.RequestException as e:  # délai dépassé, connexion coupée...
+            last = f"{type(e).__name__}: {e}"
+            time.sleep(20 * (attempt + 1))
+            continue
         if r.status_code == 200:
             _spend(w)
             data = r.json()
             return data if isinstance(data, list) else [data]
-        if r.status_code == 429:  # limite atteinte : on arrête proprement, la prochaine exécution reprendra
-            raise RuntimeError("quota Open-Meteo atteint : " + r.text[:200])
-        time.sleep(10 * (attempt + 1))
-    r.raise_for_status()
-    return []
+        last = f"HTTP {r.status_code} {r.text[:200]}"
+        if r.status_code == 429:  # quota atteint : inutile d'insister, la prochaine exécution reprendra
+            break
+        time.sleep(20 * (attempt + 1))
+    raise RuntimeError("Open-Meteo indisponible pour l'instant : " + last)
 
 
 # ---------- prévisions ----------
@@ -149,28 +158,32 @@ def fill_history(zones: list[dict], today: date, log=print) -> dict:
             if not missing:
                 continue
             ndays = calendar.monthrange(y, m)[1]
-            w = weight(len(missing), ndays)
-            if w > budget_left():
-                stopped = True
+            for c in range(0, len(missing), CHUNK):  # requêtes plus petites : moins de délais dépassés
+                part = missing[c:c + CHUNK]
+                w = weight(len(part), ndays)
+                if w > budget_left():
+                    stopped = True
+                    break
+                try:
+                    res = _get(ARCHIVE_URL, {
+                        "latitude": ",".join(str(p[0]) for p in part),
+                        "longitude": ",".join(str(p[1]) for p in part),
+                        "start_date": f"{y}-{m:02d}-01", "end_date": f"{y}-{m:02d}-{ndays:02d}",
+                        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum", "timezone": "GMT",
+                    }, w)
+                except RuntimeError as e:
+                    log(str(e))
+                    stopped = True
+                    break
+                for p, r in zip(part, res):
+                    k = point_key(*p)
+                    raw[k].setdefault(f"{m:02d}", {})[str(y)] = [
+                        r["daily"]["temperature_2m_max"], r["daily"]["temperature_2m_min"], r["daily"]["precipitation_sum"]]
+                    dirty.add(k)
+                time.sleep(PAUSE / 3)
+            if stopped:
                 break
-            try:
-                res = _get(ARCHIVE_URL, {
-                    "latitude": ",".join(str(p[0]) for p in missing),
-                    "longitude": ",".join(str(p[1]) for p in missing),
-                    "start_date": f"{y}-{m:02d}-01", "end_date": f"{y}-{m:02d}-{ndays:02d}",
-                    "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum", "timezone": "GMT",
-                }, w)
-            except RuntimeError as e:
-                log(str(e))
-                stopped = True
-                break
-            for p, r in zip(missing, res):
-                k = point_key(*p)
-                raw[k].setdefault(f"{m:02d}", {})[str(y)] = [
-                    r["daily"]["temperature_2m_max"], r["daily"]["temperature_2m_min"], r["daily"]["precipitation_sum"]]
-                dirty.add(k)
             log(f"historique {m:02d}/{y} : {len(missing)} points")
-            time.sleep(PAUSE)
         flush()  # sauvegarde à la fin de chaque mois (et à l'arrêt)
         if stopped:
             break
