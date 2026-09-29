@@ -32,7 +32,13 @@ def daily(zones, use_llm=True):
     cov = coverage(zones)
     print(f"Normales disponibles : {cov['global']} % de l'année")
     normals = build_normals(zones)
-    fc = fetch_forecast(zones)
+    try:
+        fc = fetch_forecast(zones)
+    except RuntimeError as e:
+        if (ROOT / "data" / "latest.json").exists():
+            print(f"{e} : on garde le dernier calcul, nouvel essai à la prochaine exécution.")
+            return
+        raise
     series = build_zone_series(zones, fc, normals)
     today = date.fromisoformat(fc["time"][30])
     data = build(zones, series, today, {"sources": SOURCES, "coverage": cov}, use_llm=use_llm)
