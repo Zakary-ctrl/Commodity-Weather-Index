@@ -28,6 +28,7 @@ STATE = ROOT / "data" / "state" / "quota.json"
 BUDGET_HOUR, BUDGET_DAY = 4500, 9500  # marge sous les limites 5 000/h et 10 000/jour
 PAUSE = 32  # secondes de pause par tranche de ~126 points (limite par minute)
 CHUNK = 32  # points par requête d'archive
+MAX_FILL_SECONDS = 20 * 60  # au-delà, on s'arrête et on sauvegarde (le job GitHub est limité à 50 min)
 
 
 # ---------- points ----------
@@ -145,6 +146,7 @@ def fill_history(zones: list[dict], today: date, log=print) -> dict:
     pts = unique_points(zones)
     raw = {point_key(*p): load_raw(point_key(*p)) for p in pts}
     stopped = False
+    t_start = time.time()
     dirty: set[str] = set()
 
     def flush():
@@ -161,7 +163,7 @@ def fill_history(zones: list[dict], today: date, log=print) -> dict:
             for c in range(0, len(missing), CHUNK):  # requêtes plus petites : moins de délais dépassés
                 part = missing[c:c + CHUNK]
                 w = weight(len(part), ndays)
-                if w > budget_left():
+                if w > budget_left() or time.time() - t_start > MAX_FILL_SECONDS:
                     stopped = True
                     break
                 try:
