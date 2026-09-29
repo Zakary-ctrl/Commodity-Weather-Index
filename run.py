@@ -17,6 +17,7 @@ from pathlib import Path
 from pipeline.aggregate import build_normals, build_zone_series
 from pipeline.build import build, write_outputs
 from pipeline.fetch import coverage, fetch_forecast, fill_history
+from pipeline.mapspam import apply_weights, ensure as ensure_mapspam
 
 ROOT = Path(__file__).resolve().parent
 DAILY_HOUR_UTC = 5
@@ -28,7 +29,7 @@ def load_zones():
     return json.loads((ROOT / "config" / "zones.json").read_text())["zones"]
 
 
-def daily(zones, use_llm=True):
+def daily(zones, use_llm=True, poids_source=None):
     cov = coverage(zones)
     print(f"Normales disponibles : {cov['global']} % de l'année")
     normals = build_normals(zones)
@@ -41,7 +42,7 @@ def daily(zones, use_llm=True):
         raise
     series = build_zone_series(zones, fc, normals)
     today = date.fromisoformat(fc["time"][30])
-    data = build(zones, series, today, {"sources": SOURCES, "coverage": cov}, use_llm=use_llm)
+    data = build(zones, series, today, {"sources": SOURCES, "coverage": cov, "poids_source": poids_source}, use_llm=use_llm)
     write_outputs(data, normals)
     print(f"OK : {len(data['zones'])} zones, {len(data['alertes'])} alerte(s).")
 
@@ -54,6 +55,8 @@ def main() -> None:
     args = ap.parse_args()
     zones = load_zones()
     now = datetime.now(timezone.utc)
+    new_weights = ensure_mapspam(zones) if args.mode in ("auto", "daily") else False
+    poids_source = apply_weights(zones)
 
     if args.mode in ("auto", "fill"):
         full = lambda c: {m for m, v in c["par_mois"].items() if v == 100}
@@ -70,10 +73,10 @@ def main() -> None:
             age_h = (now - datetime.fromisoformat(prev["genere_le"].replace("Z", "+00:00"))).total_seconds() / 3600
             if [z["id"] for z in prev["zones"]] != [z["id"] for z in zones]:
                 age_h = 99  # la configuration des zones a changé : recalcul immédiat
-        if not (args.force or new_month or now.hour == DAILY_HOUR_UTC or age_h > 23):
+        if not (args.force or new_weights or new_month or now.hour == DAILY_HOUR_UTC or age_h > 23):
             print("Rien à recalculer pour l'instant.")
             return
-    daily(zones, use_llm=not args.no_llm)
+    daily(zones, use_llm=not args.no_llm, poids_source=poids_source)
 
 
 if __name__ == "__main__":
