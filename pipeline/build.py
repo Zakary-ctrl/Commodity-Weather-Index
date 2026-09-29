@@ -68,6 +68,7 @@ def build(zones: list[dict], series: dict, today: date, meta: dict,
         "genere_le": meta.get("generated") or datetime.now(timezone.utc).isoformat(timespec="minutes"),
         "date_du_jour": today.isoformat(), "time": time0, "i0": series[zones[0]["id"]]["i0"],
         "sources": meta.get("sources", []), "couverture_normales": meta.get("coverage"),
+        "poids_source": meta.get("poids_source"),
         "system_prompt": llm.SYSTEM_PROMPT, "zones": out_zones, "alertes": alerts_feed,
     }
 
