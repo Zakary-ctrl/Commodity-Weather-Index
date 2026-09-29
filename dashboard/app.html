@@ -830,7 +830,7 @@ async function runLLM(z){
 
 /* ================= pied de page ================= */
 function renderFoot(){
-  $('foot').innerHTML = `<div><b>Méthode.</b> Chaque zone est suivie par des points représentatifs pondérés par leur poids de production (approximation, à remplacer par MapSPAM). Les 30 derniers jours proviennent des analyses des modèles, les 16 suivants des prévisions (sélection automatique Open-Meteo : ECMWF, GFS, ICON…), récupérées en direct à l'ouverture de la page. Les normales sont calculées sur 1991-2020 (réanalyse ERA5), lissées sur ±7 jours. Le moteur de règles croise ces indicateurs avec le calendrier cultural de chaque zone ; les encadrés sont rédigés chaque matin.</div>
+  $('foot').innerHTML = `<div><b>Méthode.</b> Chaque zone est suivie par plusieurs points représentatifs, pondérés selon leur part dans la production${D0.poids_source ? ` (${esc(D0.poids_source)})` : ' (estimation)'}. Les 30 derniers jours proviennent des analyses des modèles, les 16 suivants des prévisions (sélection automatique Open-Meteo : ECMWF, GFS, ICON…), récupérées en direct à l'ouverture de la page. Les normales sont calculées sur 1991-2020 (réanalyse ERA5), lissées sur ±7 jours. Le moteur de règles croise ces indicateurs avec le calendrier cultural de chaque zone ; les encadrés sont rédigés chaque matin.</div>
   <div><b>Sources.</b> ${D0.sources.map(esc).join(' · ')} · <a href="https://open-meteo.com/" target="_blank" rel="noopener">open-meteo.com</a> (CC BY 4.0).</div>
   <div><b>Avertissement.</b> Information sur les conditions météo et leurs mécanismes, pas une recommandation d'investissement. Aucun prix n'est prévu ici.</div>`;
 }
