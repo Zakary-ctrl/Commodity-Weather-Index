@@ -45,6 +45,26 @@ def daily(zones, use_llm=True, poids_source=None):
     data = build(zones, series, today, {"sources": SOURCES, "coverage": cov, "poids_source": poids_source}, use_llm=use_llm)
     write_outputs(data, normals)
     print(f"OK : {len(data['zones'])} zones, {len(data['alertes'])} alerte(s).")
+    extras(zones, normals)
+
+
+def _extras_stale(now) -> bool:
+    """Vrai si les cours/actualités datent de plus de 20 h ou si le backtest n'existe pas encore."""
+    f, b = ROOT / "data" / "prices.json", ROOT / "data" / "backtest.json"
+    if not f.exists() or not b.exists():
+        return True
+    maj = json.loads(f.read_text()).get("maj", "2000-01-01T00:00+00:00")
+    return (now - datetime.fromisoformat(maj)).total_seconds() > 20 * 3600
+
+
+def extras(zones, normals):
+    """Backtest, cours des contrats et actualités : jamais bloquants pour le reste."""
+    from pipeline import backtest, news, prices
+    for name, fn in (("backtest", lambda: backtest.run(zones, normals)), ("prix", prices.update), ("actualités", lambda: news.update(zones))):
+        try:
+            fn()
+        except Exception as e:  # noqa: BLE001
+            print(f"{name} indisponible : {str(e)[:200]}")
 
 
 def main() -> None:
@@ -75,6 +95,8 @@ def main() -> None:
                 age_h = 99  # la configuration des zones a changé : recalcul immédiat
         if not (args.force or new_weights or new_month or now.hour == DAILY_HOUR_UTC or age_h > 23):
             print("Rien à recalculer pour l'instant.")
+            if _extras_stale(now):
+                extras(zones, build_normals(zones))
             return
     daily(zones, use_llm=not args.no_llm, poids_source=poids_source)
 
