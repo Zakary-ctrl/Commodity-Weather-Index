@@ -741,7 +741,7 @@ function spark(s){
 function marketHTML(z){
   const seen = new Set(), items = [];
   z.contrats_fr.forEach((cfr, i) => { const p = priceInfo(cfr); if (!p || seen.has(p.ticker)) return; seen.add(p.ticker); items.push({cfr, name: z.contrats[i], p}); });
-  if (!items.length) return `<div class="card"><div class="sect"><h3>${T('Marché', 'Market')}</h3></div><p class="hint" style="margin:6px 0 0">${T('Pas de cotation gratuite disponible pour', 'No free quote available for')} ${esc(z.contrats.join(', '))}.</p></div>`;
+  if (!items.length) return '';  // pas de cotation disponible : pas de bloc
   const a = z.alertes[0];
   const rows = items.map(({cfr, name, p}) => { const s = p.s, L = s.close.length, last = s.close[L-1];
     const ref = p.direct ? '' : `<div class="hint">${T('Pas de cotation gratuite pour', 'No free quote for')} ${esc(name)}${T(' : ', ': ')}${T('référence liquide la plus proche', 'closest liquid benchmark')}</div>`;
