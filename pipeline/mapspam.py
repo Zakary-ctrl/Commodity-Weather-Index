@@ -30,7 +30,7 @@ URLS = [  # Dropbox renvoie parfois une page web au lieu du fichier : on essaie 
     f"https://www.dropbox.com/{_KEY}&raw=1",
 ]
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"}
-VERSION = 3
+VERSION = 4
 DATAVERSE = "https://dataverse.harvard.edu"
 DOI = "doi:10.7910/DVN/SWPENT"
 SOURCE = "MapSPAM 2020 v2.2 (IFPRI), production par culture sur grille de ~10 km"
@@ -70,7 +70,11 @@ def _dataverse_urls() -> list[str]:
             return -1
         return 2 * ("global" in n) + ("csv" in n) + ("_a" in n or "all" in n)
     cands = sorted((f for f in files if score(f) >= 0), key=score, reverse=True)
-    return [f"{DATAVERSE}/api/access/datafile/{f['id']}?format=original" for f in cands[:3]]
+    out = []
+    for f in cands[:3]:  # "format=original" n'est accepté que pour les fichiers tabulaires
+        base = f"{DATAVERSE}/api/access/datafile/{f['id']}"
+        out += [base + "?format=original", base] if f.get("tabularData") or f.get("originalFileFormat") else [base]
+    return out
 
 
 def _download() -> bytes:
