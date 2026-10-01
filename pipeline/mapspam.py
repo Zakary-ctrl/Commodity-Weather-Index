@@ -30,7 +30,9 @@ URLS = [  # Dropbox renvoie parfois une page web au lieu du fichier : on essaie 
     f"https://www.dropbox.com/{_KEY}&raw=1",
 ]
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"}
-VERSION = 2
+VERSION = 3
+DATAVERSE = "https://dataverse.harvard.edu"
+DOI = "doi:10.7910/DVN/SWPENT"
 SOURCE = "MapSPAM 2020 v2.2 (IFPRI), production par culture sur grille de ~10 km"
 HALF_BOX = 0.75  # demi-côté du carré autour de chaque point, en degrés (~80 km)
 MIN_SHARE = 0.03  # un point garde toujours un poids minimal
@@ -57,13 +59,38 @@ def _codes_for(cultures: list[str], available: set[str]) -> list[str]:
     return out
 
 
+def _dataverse_urls() -> list[str]:
+    """Source officielle (Harvard Dataverse, IFPRI) : on cherche le fichier de production mondial."""
+    r = requests.get(f"{DATAVERSE}/api/datasets/:persistentId/", params={"persistentId": DOI}, timeout=120, headers=UA)
+    r.raise_for_status()
+    files = [f["dataFile"] for f in r.json()["data"]["latestVersion"]["files"]]
+    def score(f):
+        n = (f.get("filename") or "").lower()
+        if "prod" not in n or not (n.endswith(".zip") or n.endswith(".csv")):
+            return -1
+        return 2 * ("global" in n) + ("csv" in n) + ("_a" in n or "all" in n)
+    cands = sorted((f for f in files if score(f) >= 0), key=score, reverse=True)
+    return [f"{DATAVERSE}/api/access/datafile/{f['id']}?format=original" for f in cands[:3]]
+
+
 def _download() -> bytes:
-    tried = []
-    for url in URLS:
+    tried, urls = [], []
+    try:
+        urls = _dataverse_urls()
+        if not urls:
+            tried.append("dataverse: aucun fichier de production trouvé")
+    except Exception as e:  # noqa: BLE001
+        tried.append(f"dataverse: {str(e)[:120]}")
+    for url in urls + URLS:
         try:
             r = requests.get(url, timeout=600, allow_redirects=True, headers=UA)
             if r.status_code == 200 and r.content[:2] == b"PK":
                 return r.content
+            if r.status_code == 200 and b"," in r.content[:200] and b"<html" not in r.content[:500].lower():
+                buf = io.BytesIO()  # CSV brut : on l'emballe dans un zip pour la suite du traitement
+                with zipfile.ZipFile(buf, "w") as z:
+                    z.writestr("spam_production.csv", r.content)
+                return buf.getvalue()
             tried.append(f"{url.split('/')[2]}: HTTP {r.status_code}, {len(r.content)} octets, {r.headers.get('content-type', '')}")
         except requests.RequestException as e:
             tried.append(f"{url.split('/')[2]}: {e}")
