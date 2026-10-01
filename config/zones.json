@@ -2491,6 +2491,7 @@
      "culture": "Blé",
      "etape": "Semis",
      "mois": [
+      10,
       11,
       12
      ],
@@ -2619,6 +2620,7 @@
      "culture": "Blé",
      "etape": "Semis",
      "mois": [
+      10,
       11,
       12
      ],
@@ -3934,6 +3936,7 @@
      "culture": "Blé",
      "etape": "Semis",
      "mois": [
+      10,
       11,
       12
      ],

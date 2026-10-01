@@ -1,0 +1,33 @@
+{
+ "_note": "Chocs météo historiques connus (1991-2020) servant à vérifier les règles. mois = mois où la zone devait être en alerte.",
+ "evenements": [
+  {"zone": "br_arabica", "annee": 1994, "mois": [6, 7], "fr": "Gels de juin-juillet 1994 au Minas Gerais", "en": "June-July 1994 frosts in Minas Gerais"},
+  {"zone": "br_arabica", "annee": 2000, "mois": [7], "fr": "Gel de juillet 2000 sur les caféiers brésiliens", "en": "July 2000 frost on Brazilian coffee"},
+  {"zone": "br_arabica", "annee": 2014, "mois": [1, 2], "fr": "Sécheresse de janvier-février 2014 dans le Sud-Est brésilien", "en": "January-February 2014 drought in south-east Brazil"},
+  {"zone": "br_cane", "annee": 2014, "mois": [1, 2], "fr": "Sécheresse de 2014 sur la canne du Centre-Sud", "en": "2014 drought on Centre-South cane"},
+  {"zone": "us_cornbelt", "annee": 2012, "mois": [7, 8], "fr": "Sécheresse et canicule de 2012 sur le Corn Belt", "en": "2012 Corn Belt drought and heatwave"},
+  {"zone": "bs_wheat", "annee": 2010, "mois": [5, 6, 7, 8, 9, 10, 11], "fr": "Sécheresse et canicule russes de 2010", "en": "2010 Russian drought and heatwave"},
+  {"zone": "kz_wheat", "annee": 2010, "mois": [6, 7], "fr": "Sécheresse de 2010 au Kazakhstan", "en": "2010 drought in Kazakhstan"},
+  {"zone": "ua_grains", "annee": 2003, "mois": [1, 2], "fr": "Gel d'hiver 2003 sur le blé ukrainien", "en": "2003 winterkill on Ukrainian wheat"},
+  {"zone": "fr_wheat", "annee": 2003, "mois": [6], "fr": "Canicule de juin 2003 en France", "en": "June 2003 heatwave in France"},
+  {"zone": "de_pl_wheat", "annee": 2018, "mois": [4, 5, 6, 7], "fr": "Sécheresse de 2018 en Europe du Nord", "en": "2018 northern European drought"},
+  {"zone": "ca_prairies", "annee": 2002, "mois": [6, 7], "fr": "Sécheresse de 2002 dans les Prairies canadiennes", "en": "2002 Canadian Prairies drought"},
+  {"zone": "au_wheat", "annee": 2002, "mois": [7, 8, 9, 10], "fr": "Sécheresse de 2002 en Australie", "en": "2002 Australian drought"},
+  {"zone": "au_wheat", "annee": 2006, "mois": [7, 8, 9, 10], "fr": "Sécheresse de 2006 en Australie", "en": "2006 Australian drought"},
+  {"zone": "ar_pampa", "annee": 2009, "mois": [1, 2], "fr": "Sécheresse de 2008-2009 dans la Pampa", "en": "2008-2009 Pampas drought"},
+  {"zone": "ar_pampa", "annee": 2018, "mois": [1, 2], "fr": "Sécheresse de l'été 2017-2018 en Argentine", "en": "2017-2018 summer drought in Argentina"},
+  {"zone": "za_maize", "annee": 1992, "mois": [1, 2], "fr": "Sécheresse de 1991-1992 en Afrique australe", "en": "1991-1992 southern African drought"},
+  {"zone": "za_maize", "annee": 2016, "mois": [1, 2], "fr": "Sécheresse El Niño de 2015-2016 en Afrique du Sud", "en": "2015-2016 El Niño drought in South Africa"},
+  {"zone": "ma_wheat", "annee": 2016, "mois": [1, 2, 3], "fr": "Hiver sec 2015-2016 au Maroc", "en": "Dry 2015-2016 winter in Morocco"},
+  {"zone": "af_cocoa", "annee": 2016, "mois": [1, 2], "fr": "Harmattan sévère de 2016 en Côte d'Ivoire et au Ghana", "en": "Severe 2016 harmattan in Côte d'Ivoire and Ghana"},
+  {"zone": "vn_robusta", "annee": 2016, "mois": [2, 3], "fr": "Sécheresse El Niño de 2016 sur les Hauts Plateaux vietnamiens", "en": "2016 El Niño drought in Vietnam's Central Highlands"},
+  {"zone": "my_sum_palm", "annee": 1997, "mois": [8, 9, 10, 11], "fr": "Sécheresse El Niño de 1997 en Malaisie et à Sumatra", "en": "1997 El Niño drought in Malaysia and Sumatra"},
+  {"zone": "my_sum_palm", "annee": 2015, "mois": [8, 9, 10], "fr": "Sécheresse El Niño de 2015 en Malaisie et à Sumatra", "en": "2015 El Niño drought in Malaysia and Sumatra"},
+  {"zone": "borneo_palm", "annee": 1997, "mois": [8, 9, 10, 11], "fr": "Sécheresse El Niño de 1997 à Bornéo", "en": "1997 El Niño drought in Borneo"},
+  {"zone": "borneo_palm", "annee": 2015, "mois": [8, 9, 10], "fr": "Sécheresse El Niño de 2015 à Bornéo", "en": "2015 El Niño drought in Borneo"},
+  {"zone": "in_grains", "annee": 2002, "mois": [7, 8], "fr": "Défaillance de la mousson de 2002 en Inde", "en": "2002 Indian monsoon failure"},
+  {"zone": "in_grains", "annee": 2009, "mois": [6, 7, 8], "fr": "Défaillance de la mousson de 2009 en Inde", "en": "2009 Indian monsoon failure"},
+  {"zone": "in_sugar", "annee": 2009, "mois": [6, 7, 8], "fr": "Mousson déficitaire de 2009 sur la canne indienne", "en": "Weak 2009 monsoon on Indian cane"},
+  {"zone": "th_sugar", "annee": 2015, "mois": [5, 6, 7, 8], "fr": "Sécheresse de 2015 en Thaïlande", "en": "2015 drought in Thailand"}
+ ]
+}
