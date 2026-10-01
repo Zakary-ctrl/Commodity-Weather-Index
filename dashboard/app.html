@@ -193,17 +193,49 @@ table.t th.num{text-align:right}
 .fresh{color:var(--faint)}
 a{color:#4AA3FF}
 .tip{background:#1A1F27!important;color:var(--ink)!important;border:1px solid var(--accent)}
+
+/* prix, actualités, backtest */
+.news{margin-top:16px}
+.news h2{font-size:20px;font-weight:700;border-top:2px solid var(--rule);padding-top:8px;margin:0 0 6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.nlist{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.nlist li{display:flex;flex-direction:column;gap:2px;padding:8px 6px;border-bottom:1px solid var(--line)}
+.nlist a{color:var(--ink);text-decoration:none;font-weight:600;line-height:1.35}
+.nlist a:hover{color:var(--accent);text-decoration:underline}
+.nlist .muted{font-size:12px}
+.mk{padding:10px 0;border-top:1px solid var(--line)}
+.mk:first-of-type{border-top:0}
+.mkh{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.mkh .num{font-size:17px;font-weight:700}
+.spark{display:block;width:100%;height:64px;margin:6px 0 4px}
+.mkc{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted)}
+.up{color:var(--s0)}.down{color:var(--s3)}
+.mkread{margin:4px 0 2px;padding:8px 10px;border-left:3px solid var(--accent);background:var(--accent-soft);font-size:13.5px}
+.alist .ct .up,.alist .ct .down{font-size:11.5px}
+.btstrip{display:grid;grid-template-columns:repeat(30,1fr);gap:2px}
+.btstrip span{height:22px}
+.btyears{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px}
+.yr{display:inline-block;font-size:11px;padding:0 4px;margin:1px 2px 1px 0;border-left:3px solid var(--c);background:var(--accent-soft)}
+.bth{font-size:13px;margin:14px 0 6px;color:var(--accent);text-transform:uppercase;letter-spacing:.05em}
+.evl{list-style:none;margin:0;padding:0}
+.evl li{display:flex;gap:10px;padding:6px 4px;border-bottom:1px solid var(--line);font-size:13.5px;align-items:baseline}
+.evl li[data-z]:hover{background:#15191F}
+.evs{flex:none;width:18px;text-align:center;font-weight:700;color:var(--faint)}
+.evs.ok{color:var(--s0)}.evs.ko{color:var(--s3)}
 </style>
 
 <div class="wrap" id="app" data-view="public">
   <header class="top">
     <div class="brand">
       <h1>Commodity Weather Index</h1>
-      <p>Anomalies météo des grandes ceintures agricoles et leur lecture marché</p>
+      <p id="tagline"></p>
     </div>
-    <div class="seg" role="group" aria-label="Niveau de lecture">
-      <button id="v-public" aria-pressed="true">Grand public</button>
-      <button id="v-analyst" aria-pressed="false">Analyste</button>
+    <div class="seg" role="group" id="viewseg">
+      <button id="v-public" aria-pressed="true"></button>
+      <button id="v-analyst" aria-pressed="false"></button>
+    </div>
+    <div class="seg" role="group" aria-label="Langue / Language">
+      <button id="lang-fr" aria-pressed="false">FR</button>
+      <button id="lang-en" aria-pressed="false">EN</button>
     </div>
     <div class="spacer"></div>
     <div class="counts" id="counts"></div>
@@ -212,9 +244,9 @@ a{color:#4AA3FF}
 
   <main class="grid">
     <aside class="filters" aria-label="Filtres">
-      <div class="fgroup cult" id="f-cult"><h3>Commodités</h3></div>
-      <div class="fgroup"><h3>Continents</h3><div class="chips" id="f-cont"></div></div>
-      <div class="fgroup"><h3>Sévérité minimale</h3><div class="chips" id="f-sev"></div></div>
+      <div class="fgroup cult" id="f-cult"><h3 id="h-cult"></h3></div>
+      <div class="fgroup"><h3 id="h-cont"></h3><div class="chips" id="f-cont"></div></div>
+      <div class="fgroup"><h3 id="h-sev"></h3><div class="chips" id="f-sev"></div></div>
     </aside>
 
     <section class="mapcol" aria-label="Carte mondiale">
@@ -228,11 +260,13 @@ a{color:#4AA3FF}
         <div class="tip" id="tip" role="status"></div>
       </div>
       <p class="mapnote" id="mapnote"></p>
+      <section class="news" id="news" aria-live="polite"></section>
     </section>
 
-    <section class="feed" aria-label="Fil d'alertes">
-      <h2>Fil d'alertes <span class="eyebrow" id="feeddate"></span></h2>
+    <section class="feed">
+      <h2><span id="h-feed"></span> <span class="eyebrow" id="feeddate"></span></h2>
       <ul class="alist" id="alist"></ul>
+      <div id="btglobal"></div>
     </section>
 
     <aside class="fiche" id="fiche" aria-live="polite"></aside>
@@ -245,18 +279,26 @@ a{color:#4AA3FF}
 <!--DATA-->
 <script>
 (() => {
-const D0 = window.OSC_DATA, W = window.OSC_WORLD, NORM = window.OSC_NORMALS || {};
+const D0 = window.OSC_DATA, W = window.OSC_WORLD, NORM = window.OSC_NORMALS || {}, X = window.OSC_EXTRA || {};
 const D = {...D0};  // état courant : remplacé par le recalcul en direct quand il réussit
 const app = document.getElementById('app');
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const MOIS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
-const MOIS1 = ['J','F','M','A','M','J','J','A','S','O','N','D'];
-const fdate = iso => { const [y,m,d] = iso.slice(0,10).split('-').map(Number); return `${d} ${MOIS[m-1]} ${y}`; };
-const fday = iso => { const [,m,d] = iso.slice(0,10).split('-').map(Number); return `${d} ${MOIS[m-1]}`; };
-const SEV = {0:'Aucune alerte',1:'Vigilance',2:'Alerte',3:'Alerte élevée',4:'Alerte critique'};
-const sevVar = s => `var(--s${s||0})`;
 const store = { get(k,d){ try{ const v = localStorage.getItem('osc:'+k); return v===null?d:JSON.parse(v);}catch(e){return d;} }, set(k,v){ try{ localStorage.setItem('osc:'+k, JSON.stringify(v)); }catch(e){} } };
+/* ================= langue ================= */
+const LANG = (() => { const q = new URLSearchParams(location.search).get('lang'); if (q === 'fr' || q === 'en') return q;
+  return store.get('lang', (navigator.language || 'fr').toLowerCase().startsWith('fr') ? 'fr' : 'en'); })();
+const EN = LANG === 'en';
+document.documentElement.lang = LANG;
+const T = (fr, en) => EN ? en : fr;
+const I18N = X.i18n || {};
+const tr = v => EN && v != null && I18N[v] != null ? I18N[v] : v;
+const MOIS = T(['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'], ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
+const MOIS1 = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+const fdate = iso => { const [y,m,d] = iso.slice(0,10).split('-').map(Number); return EN ? `${MOIS[m-1]} ${d}, ${y}` : `${d} ${MOIS[m-1]} ${y}`; };
+const fday = iso => { const [,m,d] = iso.slice(0,10).split('-').map(Number); return EN ? `${MOIS[m-1]} ${d}` : `${d} ${MOIS[m-1]}`; };
+const SEV = T({0:'Aucune alerte',1:'Vigilance',2:'Alerte',3:'Alerte élevée',4:'Alerte critique'}, {0:'No alert',1:'Watch',2:'Warning',3:'High alert',4:'Critical alert'});
+const sevVar = s => `var(--s${s||0})`;
 const zones = D0.zones.map(z => ({...z, sev: z.alertes.length ? z.alertes[0].severite : 0}));
 const byId = Object.fromEntries(zones.map(z => [z.id, z]));
 let month = Number(D.date_du_jour.slice(5,7));
@@ -275,12 +317,29 @@ const GROUPS = [
 ];
 const zoneGroups = z => GROUPS.filter(g => z.cultures.some(c => g.kw.some(k => c.includes(k)))).map(g => g.id);
 zones.forEach(z => z.groups = zoneGroups(z));
+if (EN) GROUPS.forEach(g => g.label = {cereales:'Grains', oleag:'Oilseeds', cafe:'Coffee', cacao:'Cocoa', sucre:'Sugar', coton:'Cotton', palme:'Palm oil', oj:'Orange juice', the:'Tea'}[g.id]);
+/* textes des zones dans la langue choisie (les clés en français restent dans *_fr) */
+function localizeAlert(a){ if (!EN || !a) return a; const z = byId[a.zone]; const r = z ? z.regles.find(x => x.id === a.id) : null;
+  const [c, why] = r ? confidence(r) : [a.confiance, a.confiance_raison];
+  return {...a, confiance: c, confiance_raison: why, phenomene: r ? r.phenomene : tr(a.phenomene), mecanisme: r ? r.mecanisme : tr(a.mecanisme), culture: tr(a.culture), contrat_fr: a.contrat_fr || a.contrat, contrat: tr(a.contrat), direction: tr(a.direction), horizon: tr(a.horizon), niveau: SEV[a.severite]}; }
+zones.forEach(z => {
+  z.contrats_fr = z.contrats; z.continent_fr = z.continent;
+  z.regles.forEach(r => { r.contrat_fr = r.contrat; });
+  z.alertes.forEach(a => { a.contrat_fr = a.contrat; a.zone = z.id; });
+  if (!EN) return;
+  z.nom = tr(z.nom); z.pays = tr(z.pays); z.poids_mondial = tr(z.poids_mondial);
+  z.cultures = z.cultures.map(tr); z.contrats = z.contrats.map(tr);
+  z.calendrier = z.calendrier.map(c => ({...c, culture: tr(c.culture), etape: tr(c.etape)}));
+  z.stades = (z.stades || []).map(c => ({...c, culture: tr(c.culture), etape: tr(c.etape)}));
+  z.regles = z.regles.map(r => ({...r, culture: tr(r.culture), phenomene: tr(r.phenomene), mecanisme: tr(r.mecanisme), contrat: tr(r.contrat), direction: tr(r.direction), horizon: tr(r.horizon)}));
+});
+zones.forEach(z => { z.alertes = z.alertes.map(localizeAlert); });
 const CONTS = ['Amérique du Nord','Amérique du Sud','Afrique','Europe','Asie','Océanie'];
 const LAYERS = [
-  {id:'risk', label:'Score de risque'},
-  {id:'tx', label:'Températures, 7 j prévus'},
-  {id:'pr30', label:'Pluie, 30 derniers jours'},
-  {id:'pr14', label:'Pluie prévue, 14 j'},
+  {id:'risk', label:T('Score de risque','Risk score')},
+  {id:'tx', label:T('Températures, 7 j prévus','Temperature, next 7 days')},
+  {id:'pr30', label:T('Pluie, 30 derniers jours','Rain, last 30 days')},
+  {id:'pr14', label:T('Pluie prévue, 14 j','Rain forecast, 14 days')},
 ];
 const state = {
   view: store.get('view','public'), groups: new Set(GROUPS.map(g => g.id)), conts: new Set(CONTS),
@@ -328,9 +387,9 @@ function metricValue(m, r){
 }
 const hit = (v, op, t) => ({'<': v < t, '>': v > t, '>=': v >= t, '<=': v <= t})[op];
 function confidence(r){
-  if (r.metrique.includes('obs')) return ['élevée', 'le constat repose sur les 30 derniers jours, déjà écoulés'];
-  if (r.metrique === 'pr_fc14_pct') return ['faible', "la pluie prévue au-delà d'une semaine reste très incertaine"];
-  return ['moyenne', 'le signal vient des prévisions à 7-10 jours, fiables mais révisables'];
+  if (r.metrique.includes('obs')) return T(['élevée', 'le constat repose sur les 30 derniers jours, déjà écoulés'], ['high', 'the signal is based on the last 30 days, already observed']);
+  if (r.metrique === 'pr_fc14_pct') return T(['faible', "la pluie prévue au-delà d'une semaine reste très incertaine"], ['low', 'rainfall forecasts beyond one week remain highly uncertain']);
+  return T(['moyenne', 'le signal vient des prévisions à 7-10 jours, fiables mais révisables'], ['medium', 'the signal comes from 7-10 day forecasts, reliable but subject to revision']);
 }
 function evaluateZone(z, m, mon){
   const out = [];
@@ -340,8 +399,8 @@ function evaluateZone(z, m, mon){
     if (val == null || !hit(val, r.op, r.seuil)) continue;
     let sev = r.severite; if (r.severe != null && hit(val, r.op, r.severe)) sev = Math.min(4, sev + 1);
     const [c, why] = confidence(r);
-    out.push({id:r.id, culture:r.culture, phenomene:r.phenomene, mecanisme:r.mecanisme, contrat:r.contrat, direction:r.direction, horizon:r.horizon,
-      metrique:r.metrique, op:r.op, seuil:r.seuil, t:r.t ?? null, valeur:val, severite:sev, niveau:SEV_LABELS[sev], confiance:c, confiance_raison:why});
+    out.push({id:r.id, zone:z.id, culture:r.culture, phenomene:r.phenomene, mecanisme:r.mecanisme, contrat:r.contrat, contrat_fr:r.contrat_fr, direction:r.direction, horizon:r.horizon,
+      metrique:r.metrique, op:r.op, seuil:r.seuil, t:r.t ?? null, valeur:val, severite:sev, niveau:SEV[sev], confiance:c, confiance_raison:why});
   }
   return out.sort((a,b) => b.severite - a.severite);
 }
@@ -351,10 +410,16 @@ function riskScore(m, alerts, stages){
   const prDev = m.pr_obs30_normal != null && m.pr_obs30_normal >= MIN_NORMAL_MM ? Math.abs((m.pr_obs30_pct ?? 100) - 100) / 10 : 0;
   return Math.min(20, Math.round(sens * (3 * Math.abs(m.tx_fc7_anom || 0) + prDev)));
 }
-const fr = x => String(x).replace('.', ',');
+const fr = x => EN ? String(x) : String(x).replace('.', ',');
+const stagesText = stages => stages.map(c => `${c.etape.toLowerCase()} (${c.culture})`).join(', ') || T('hors période sensible', 'outside sensitive stages');
 function calmBulletin(z, m, stages){
-  const st = stages.map(c => `${c.etape.toLowerCase()} (${c.culture})`).join(', ') || 'hors période sensible';
+  const st = stagesText(stages);
   const t = m.tx_fc7_anom;
+  if (EN){
+    const temp = t == null ? `highs up to ${fr(m.tx_fc7_max)} °C` : Math.abs(t) < 1.5 ? 'temperatures close to normal' : `temperatures ${Math.abs(t).toFixed(1)} °C ${t > 0 ? 'above' : 'below'} normal`;
+    const rain = m.pr_obs30_normal == null ? `${m.pr_obs30_mm} mm of rain in 30 days` : m.pr_obs30_normal >= 15 && m.pr_obs30_pct != null ? `30-day rainfall at ${m.pr_obs30_pct}% of normal` : 'dry season by nature';
+    return `No critical threshold crossed. Current stage: ${st}. Week ahead: ${temp}; ${rain}.`;
+  }
   const temp = t == null ? `maximales jusqu'à ${fr(m.tx_fc7_max)} °C` : Math.abs(t) < 1.5 ? 'températures proches des normales' : `températures ${fr(Math.abs(t).toFixed(1))} °C ${t > 0 ? 'au-dessus' : 'en dessous'} des normales`;
   const pluie = m.pr_obs30_normal == null ? `${m.pr_obs30_mm} mm de pluie en 30 jours` : m.pr_obs30_normal >= 15 && m.pr_obs30_pct != null ? `pluie des 30 derniers jours à ${m.pr_obs30_pct} % de la normale` : 'saison sèche par nature';
   return `Aucun seuil critique franchi. Stade actuel : ${st}. Semaine à venir : ${temp} ; ${pluie}.`;
@@ -406,6 +471,38 @@ function templateEncadre(p){  // miroir de pipeline/llm.py template()
   };
 }
 
+function templateEncadreEN(z){
+  const a = z.alertes[0], m = z.metriques, sev = a.severite, key = a.metrique;
+  let fact;
+  if (key === 'pr_obs30_pct'){
+    fact = `${m.pr_obs30_mm} mm of rain fell over the last 30 days, ${m.pr_obs30_pct}% of normal (${m.pr_obs30_normal} mm).`;
+    const rk = m.pr_obs30_rank;
+    if (rk === 0) fact += ' Drier than every year in 1991-2020.';
+    else if (rk === 100) fact += ' Wetter than every year in 1991-2020.';
+    else if (rk != null && rk <= 10) fact += ` A total this low happens only ${rk} years in 100.`;
+    else if (rk != null && rk >= 90) fact += ` A total this high happens only ${100 - rk} years in 100.`;
+  } else if (key === 'pr_fc14_pct') fact = `Models forecast ${m.pr_fc14_mm} mm of rain over the next 14 days, ${m.pr_fc14_pct}% of normal.`;
+  else if (key === 'tn_fc7_min') fact = `Forecast lows drop to ${m.tn_fc7_min} °C within 7 days (alert threshold: ${a.seuil} °C).`;
+  else if (key === 'n_tx_gt') fact = `${a.valeur} days above ${a.t} °C are forecast over the next 10 days, peaking at ${m.tx_fc7_max} °C.`;
+  else fact = `${key}: ${a.valeur} (threshold ${a.seuil}).`;
+  const ta = m.tx_fc7_anom;
+  if (ta != null && Math.abs(ta) >= 1.5 && key !== 'n_tx_gt') fact += ` Highs this week would run ${Math.abs(ta)} °C ${ta > 0 ? 'above' : 'below'} normal.`;
+  const horizon = {'days':'in the coming days','weeks':'in the coming weeks','next season':'for the next season'}[a.horizon] || a.horizon;
+  const contracts = [...new Set(z.alertes.map(x => x.contrat))];
+  let market = `${z.poids_mondial}. ${sev <= 2 ? 'Possible' : 'Likely'} ${a.direction} pressure on ${contracts.join(', ')}, ${horizon}.`;
+  if (sev === 1) market += ' Expected impact remains limited.';
+  const mec = a.mecanisme || '';
+  return {
+    titre: `${z.pays} - ${z.nom}: ${a.phenomene[0].toLowerCase()}${a.phenomene.slice(1)}`,
+    ce_qui_se_passe: fact, impact_culture: `Current stage: ${stagesText(z.stades)}. ${mec ? mec[0].toUpperCase() + mec.slice(1) + '.' : ''}`,
+    impact_marche: market,
+    a_surveiller: key === 'pr_obs30_pct' ? `Upcoming rain: ${m.pr_fc14_mm} mm expected over 14 days.` : 'The next model runs, which may still revise this signal.',
+    confiance: `${a.confiance[0].toUpperCase()}${a.confiance.slice(1)}: ${a.confiance_raison}.`,
+    resume_une_ligne: `${a.phenomene} -> ${a.culture} -> ${contracts[0]}`,
+    direction: a.direction, intensite: sev >= 2 ? 'moderate' : 'low', source: 'gabarit',
+  };
+}
+
 /* ================= recalcul en direct à l'ouverture ================= */
 const LIVE_TTL = 60 * 60 * 1000;
 function uniquePoints(){ const seen = new Map(); zones.forEach(z => z.points.forEach(p => { const k = pkey(p[0], p[1]); if (!seen.has(k)) seen.set(k, [p[0], p[1]]); })); return [...seen.entries()]; }
@@ -429,7 +526,6 @@ function applyLive(L){
   const i0 = 30, times = L.time, today = times[i0];
   const sameDay = Math.abs((Date.parse(today) - Date.parse(D0.date_du_jour)) / 864e5) <= 2;
   D.time = times; D.i0 = i0; D.date_du_jour = today; month = Number(today.slice(5,7));
-  const feed = [];
   zones.forEach(z => {
     const keys = z.points.map(p => pkey(p[0], p[1])), w = z.points.map(p => p[2]);
     const agg = v => times.map((_, i) => { let s = 0, sw = 0; keys.forEach((k, j) => { const x = L.points[k]?.[v]?.[i]; if (x != null){ s += x * w[j]; sw += w[j]; } }); return sw ? rnd(s / sw) : null; });
@@ -447,9 +543,7 @@ function applyLive(L){
     if (!z.alertes.length){ z.encadre = null; z.bulletin = calmBulletin(z, m, z.stades); }
     else if (orig?.encadre && orig.encadre.alerte_id === z.alertes[0].id){ z.encadre = {...orig.encadre, ecrit_le: D0.genere_le}; z.bulletin = null; }
     else { z.encadre = templateEncadre(buildPayload(z)); z.bulletin = null; }
-    z.alertes.forEach(a => feed.push({zone: z.id, nom: z.nom, pays: z.pays, culture: a.culture, phenomene: a.phenomene, severite: a.severite, niveau: a.niveau, contrat: a.contrat, direction: a.direction}));
   });
-  D.alertes = feed.sort((a,b) => b.severite - a.severite);
 }
 async function goLive(force){
   if (force) store.set('live', null);
@@ -458,7 +552,7 @@ async function goLive(force){
     const L = await fetchLive();
     applyLive(L); live.status = 'ok'; live.at = L.at;
     if (!state.picked) state.sel = topZone();
-    renderTop(); drawZones(); renderFeed(); renderFiche(); renderLegend();
+    renderTop(); drawZones(); renderFeed(); renderFiche(); renderLegend(); renderNews();
   } catch (e) {
     live.status = 'off'; renderTop();
   }
@@ -478,32 +572,33 @@ function zoneColor(z){
   if (pct == null || normal == null || normal < 15) return css('--faint');
   return prScale(prLog(pct));
 }
-const sign = v => v == null ? 'n.d.' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(1).replace('.', ',');
-const signC = v => v == null ? 'n.d.' : sign(v) + ' °C';
-const n1 = v => v == null ? 'n.d.' : Number(v).toFixed(1).replace('.', ',');
+const ND = T('n.d.', 'n/a');
+const sign = v => v == null ? ND : (v > 0 ? '+' : v < 0 ? '−' : '±') + fr(Math.abs(v).toFixed(1));
+const signC = v => v == null ? ND : sign(v) + ' °C';
+const n1 = v => v == null ? ND : fr(Number(v).toFixed(1));
 function zoneValueText(z){
   const m = z.metriques;
   if (state.layer === 'risk') return `Score ${z.score}/100 · ${SEV[z.sev]}`;
-  if (state.layer === 'tx') return m.tx_fc7_anom == null ? `Tmax jusqu'à ${n1(m.tx_fc7_max)} °C (normales en cours de calcul)` : `Tmax ${sign(m.tx_fc7_anom)} °C vs normale (7 j)`;
+  if (state.layer === 'tx') return m.tx_fc7_anom == null ? T(`Tmax jusqu'à ${n1(m.tx_fc7_max)} °C (normales en cours de calcul)`, `Tmax up to ${n1(m.tx_fc7_max)} °C (normals being computed)`) : T(`Tmax ${sign(m.tx_fc7_anom)} °C vs normale (7 j)`, `Tmax ${sign(m.tx_fc7_anom)} °C vs normal (7 d)`);
   const pct = state.layer === 'pr30' ? m.pr_obs30_pct : m.pr_fc14_pct;
   const normal = state.layer === 'pr30' ? m.pr_obs30_normal : m.pr_fc14_normal;
   const mm = state.layer === 'pr30' ? m.pr_obs30_mm : m.pr_fc14_mm;
-  if (normal == null) return `Pluie ${mm} mm (normales en cours de calcul)`;
-  if (normal < 15) return 'Saison sèche : pluie normale quasi nulle';
-  return `Pluie ${pct} % de la normale (${mm} mm)`;
+  if (normal == null) return T(`Pluie ${mm} mm (normales en cours de calcul)`, `Rain ${mm} mm (normals being computed)`);
+  if (normal < 15) return T('Saison sèche : pluie normale quasi nulle', 'Dry season: normal rainfall near zero');
+  return T(`Pluie ${pct} % de la normale (${mm} mm)`, `Rain ${pct}% of normal (${mm} mm)`);
 }
-function visible(z){ return z.groups.some(g => state.groups.has(g)) && state.conts.has(z.continent) && z.sev >= state.sevMin; }
+function visible(z){ return z.groups.some(g => state.groups.has(g)) && state.conts.has(z.continent_fr) && z.sev >= state.sevMin; }
 
 /* ================= barre supérieure ================= */
 function renderTop(){
   const c = [4,3,2,1].map(s => [s, zones.filter(z => z.sev === s).length]).filter(([,n]) => n);
-  $('counts').innerHTML = c.length ? c.map(([s,n]) => `<span class="pill" style="--c:${sevVar(s)}"><span class="dot"></span>${n} ${SEV[s].toLowerCase()}</span>`).join('') : '<span class="pill"><span class="dot"></span>Aucune alerte</span>';
-  const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  $('counts').innerHTML = c.length ? c.map(([s,n]) => `<span class="pill" style="--c:${sevVar(s)}"><span class="dot"></span>${n} ${SEV[s].toLowerCase()}</span>`).join('') : `<span class="pill"><span class="dot"></span>${SEV[0]}</span>`;
+  const hm = t => new Date(t).toLocaleTimeString(EN ? 'en-GB' : 'fr-FR', {hour:'2-digit', minute:'2-digit'});
   let line;
-  if (live.status === 'ok') line = `<span class="livedot"></span>En direct · prévisions de ${hm(live.at)}`;
-  else if (live.status === 'loading') line = 'Mise à jour en direct…';
-  else line = `Dernier calcul : ${fdate(D0.genere_le)}, ${D0.genere_le.slice(11,16)} UTC`;
-  $('fresh').innerHTML = `${line}<br>${zones.length} zones suivies${live.status === 'ok' || live.status === 'off' ? ' · <button class="linkbtn" id="refresh">Actualiser</button>' : ''}`;
+  if (live.status === 'ok') line = `<span class="livedot"></span>${T('En direct · prévisions de', 'Live · forecasts as of')} ${hm(live.at)}`;
+  else if (live.status === 'loading') line = T('Mise à jour en direct…', 'Updating live…');
+  else line = `${T('Dernier calcul :', 'Last run:')} ${fdate(D0.genere_le)}, ${D0.genere_le.slice(11,16)} UTC`;
+  $('fresh').innerHTML = `${line}<br>${zones.length} ${T('zones suivies', 'zones tracked')}${live.status === 'ok' || live.status === 'off' ? ` · <button class="linkbtn" id="refresh">${T('Actualiser', 'Refresh')}</button>` : ''}`;
   const rb = $('refresh'); if (rb) rb.onclick = () => goLive(true);
   $('feeddate').textContent = fdate(D.date_du_jour);
 }
@@ -514,6 +609,14 @@ function setView(v){
 }
 $('v-public').onclick = () => setView('public');
 $('v-analyst').onclick = () => setView('analyst');
+function setLang(l){ store.set('lang', l); const u = new URL(location.href); u.searchParams.delete('lang'); location.href = u.toString(); }
+$('lang-fr').onclick = () => setLang('fr'); $('lang-en').onclick = () => setLang('en');
+$('lang-fr').setAttribute('aria-pressed', !EN); $('lang-en').setAttribute('aria-pressed', EN);
+$('v-public').textContent = T('Grand public', 'General'); $('v-analyst').textContent = T('Analyste', 'Analyst');
+$('viewseg').setAttribute('aria-label', T('Niveau de lecture', 'Reading level'));
+$('tagline').textContent = T('Anomalies météo des grandes ceintures agricoles et leur lecture marché', "Weather anomalies across the world's key crop belts, read for commodity markets");
+$('h-cult').textContent = T('Commodités', 'Commodities'); $('h-cont').textContent = T('Continents', 'Continents'); $('h-sev').textContent = T('Sévérité minimale', 'Minimum severity');
+$('h-feed').textContent = T("Fil d'alertes", 'Alert feed');
 
 /* ================= filtres ================= */
 function renderFilters(){
@@ -526,9 +629,9 @@ function renderFilters(){
     lab.querySelector('input').onchange = e => { e.target.checked ? state.groups.add(g.id) : state.groups.delete(g.id); refresh(); };
     fc.appendChild(lab);
   });
-  $('f-cont').innerHTML = CONTS.map((c,i) => `<button class="chip" id="c-${i}" aria-pressed="${state.conts.has(c)}">${esc(c)}</button>`).join('');
+  $('f-cont').innerHTML = CONTS.map((c,i) => `<button class="chip" id="c-${i}" aria-pressed="${state.conts.has(c)}">${esc(tr(c))}</button>`).join('');
   CONTS.forEach((c,i) => $('c-'+i).onclick = () => { state.conts.has(c) ? state.conts.delete(c) : state.conts.add(c); renderFilters(); refresh(); });
-  const sevs = [[0,'Toutes les zones'],[1,'Vigilance +'],[2,'Alerte +'],[3,'Élevée +']];
+  const sevs = T([[0,'Toutes les zones'],[1,'Vigilance +'],[2,'Alerte +'],[3,'Élevée +']], [[0,'All zones'],[1,'Watch +'],[2,'Warning +'],[3,'High +']]);
   $('f-sev').innerHTML = sevs.map(([s,l]) => `<button class="chip" id="s-${s}" aria-pressed="${state.sevMin===s}">${l}</button>`).join('');
   sevs.forEach(([s]) => $('s-'+s).onclick = () => { state.sevMin = s; renderFilters(); refresh(); });
 }
@@ -569,7 +672,7 @@ function drawZones(){
     .attr('fill', d => zoneColor(d.z)).attr('stroke-width', 1.2 / k)
     .attr('tabindex', d => d.main && visible(d.z) ? 0 : null)
     .attr('role', d => d.main ? 'button' : null)
-    .attr('aria-label', d => d.main ? `${d.z.nom}, ${d.z.pays} : ${zoneValueText(d.z)}` : null)
+    .attr('aria-label', d => d.main ? `${d.z.nom}, ${d.z.pays}: ${zoneValueText(d.z)}` : null)
     .on('click', (e, d) => select(d.z.id))
     .on('keydown', (e, d) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(d.z.id); } })
     .on('mousemove', (e, d) => showTip(e, d.z)).on('mouseleave', hideTip);
@@ -580,7 +683,7 @@ function drawZones(){
     .attr('x', d => d.x + (d.r + 5) / k).attr('y', d => d.y + 4 / k).attr('font-size', 11 / k).attr('stroke-width', 3 / k)
     .text(d => shortName(d.z));
 }
-const shortName = z => `${z.pays.split(' / ')[0]} · ${z.cultures[0].replace(' (Conilon)','').replace(' (jus)','')}`;
+const shortName = z => `${z.pays.split(' / ')[0]} · ${z.cultures[0].replace(' (Conilon)','').replace(' (jus)','').replace(' (juice)','')}`;
 function showTip(e, z){
   const box = $('mapbox').getBoundingClientRect(), t = $('tip');
   t.innerHTML = `<b>${esc(z.nom)}</b><br>${esc(z.pays)} · ${esc(z.cultures.join(', '))}<br>${esc(zoneValueText(z))}`;
@@ -596,36 +699,114 @@ function renderLayers(){
 function renderLegend(){
   const L = $('legend');
   if (state.layer === 'risk'){
-    L.innerHTML = `<div class="t">Niveau d'alerte</div><div class="sevs">${[0,1,2,3,4].map(s => `<span><span class="dot" style="--c:${sevVar(s)};display:inline-block;vertical-align:-1px;margin-right:4px"></span>${SEV[s]}</span>`).join('')}</div>`;
+    L.innerHTML = `<div class="t">${T("Niveau d'alerte", 'Alert level')}</div><div class="sevs">${[0,1,2,3,4].map(s => `<span><span class="dot" style="--c:${sevVar(s)};display:inline-block;vertical-align:-1px;margin-right:4px"></span>${SEV[s]}</span>`).join('')}</div>`;
   } else if (state.layer === 'tx'){
     const st = d3.range(0,1.01,.1).map(t => txScale(-4 + 8*t)).join(',');
-    L.innerHTML = `<div class="t">Tmax prévue, écart à la normale</div><div class="bar" style="background:linear-gradient(90deg,${st})"></div><div class="ticks"><span>−4 °C</span><span>0</span><span>+4 °C</span></div>`;
+    L.innerHTML = `<div class="t">${T('Tmax prévue, écart à la normale', 'Forecast Tmax, departure from normal')}</div><div class="bar" style="background:linear-gradient(90deg,${st})"></div><div class="ticks"><span>−4 °C</span><span>0</span><span>+4 °C</span></div>`;
   } else {
     const st = d3.range(0,1.01,.1).map(t => prScale(-2 + 4*t)).join(',');
-    L.innerHTML = `<div class="t">Pluie en % de la normale</div><div class="bar" style="background:linear-gradient(90deg,${st})"></div><div class="ticks"><span>25 %</span><span>100 %</span><span>400 %</span></div>`;
+    L.innerHTML = `<div class="t">${T('Pluie en % de la normale', 'Rain, % of normal')}</div><div class="bar" style="background:linear-gradient(90deg,${st})"></div><div class="ticks"><span>25 %</span><span>100 %</span><span>400 %</span></div>`;
   }
   const cov = D0.couverture_normales;
-  let note = 'Chaque disque est un point représentatif de la zone, sa taille reflète son poids dans la production. Cliquez une zone pour ouvrir sa fiche.';
-  if (cov && cov.global < 100) note += ` Normales 1991-2020 en cours de constitution (${cov.global} % de l'année) : les alertes de sécheresse et d'excès de pluie s'activent au fur et à mesure, les alertes de gel et de chaleur fonctionnent déjà.`;
+  let note = T('Chaque disque est un point représentatif de la zone, sa taille reflète son poids dans la production. Cliquez une zone pour ouvrir sa fiche.', 'Each dot is a representative point of the zone, sized by its weight in production. Click a zone to open its sheet.');
+  if (cov && cov.global < 100) note += T(` Normales 1991-2020 en cours de constitution (${cov.global} % de l'année) : les alertes de sécheresse et d'excès de pluie s'activent au fur et à mesure, les alertes de gel et de chaleur fonctionnent déjà.`, ` 1991-2020 normals still being built (${cov.global}% of the year): drought and excess-rain alerts come online progressively; frost and heat alerts already work.`);
   $('mapnote').textContent = note;
 }
 
 /* ================= fil d'alertes ================= */
 function sevBadge(s){ return `<span class="sev" style="--c:${sevVar(s)}"><i>${[1,2,3,4].map(i => `<b class="${i<=s?'on':''}"></b>`).join('')}</i>${SEV[s]}</span>`; }
+const arrow = d => ['haussière','bullish'].includes(d) ? '↑' : ['baissière','bearish'].includes(d) ? '↓' : '→';
 function renderFeed(){
-  const rows = D.alertes.filter(a => byId[a.zone] && visible(byId[a.zone]));
-  $('alist').innerHTML = rows.length ? rows.map(a => `<li><button data-z="${a.zone}">
+  const rows = zones.filter(visible).flatMap(z => z.alertes.map(a => ({...a, z}))).sort((a,b) => b.severite - a.severite || b.z.score - a.z.score);
+  $('alist').innerHTML = rows.length ? rows.map(a => { const p = priceInfo(a.contrat_fr), c1 = p ? chg(p.s, 21) : null;
+    return `<li><button data-z="${a.z.id}">
     ${sevBadge(a.severite)}
-    <span class="z">${esc(a.pays)}<small>${esc(a.nom)}</small></span>
+    <span class="z">${esc(a.z.pays)}<small>${esc(a.z.nom)}</small></span>
     <span class="ph">${esc(a.phenomene)} <span class="muted">· ${esc(a.culture)}</span></span>
-    <span class="ct">${esc(a.contrat)} ${a.direction==='haussière'?'↑':a.direction==='baissière'?'↓':'→'}</span></button></li>`).join('')
-    : `<li class="hint" style="padding:12px 6px">Aucune alerte ne correspond aux filtres. Élargissez les commodités ou la sévérité.</li>`;
+    <span class="ct">${esc(a.contrat)} ${arrow(a.direction)}${c1 != null ? `<br><span class="${c1 >= 0 ? 'up' : 'down'}">${pct(c1)} ${T('sur 1 mois', '1 month')}${p.direct ? '' : '*'}</span>` : ''}</span></button></li>`; }).join('')
+    : `<li class="hint" style="padding:12px 6px">${T('Aucune alerte ne correspond aux filtres. Élargissez les commodités ou la sévérité.', 'No alert matches the filters. Widen the commodities or the severity.')}</li>`;
   $('alist').querySelectorAll('button').forEach(b => b.onclick = () => select(b.dataset.z, true));
+}
+
+/* ================= prix des contrats ================= */
+const PX = X.prices || {};
+function priceInfo(cfr){ const c = PX.contrats && PX.contrats[cfr]; if (!c) return null; const s = PX.series && PX.series[c.ticker]; return s && s.close && s.close.length > 25 ? {...c, s} : null; }
+function chg(s, n){ const c = s.close, L = c.length; return L > n ? 100 * (c[L-1] / c[L-1-n] - 1) : null; }
+const pct = v => v == null ? ND : `${v > 0 ? '+' : v < 0 ? '−' : ''}${fr(Math.abs(v).toFixed(1))}${EN ? '%' : ' %'}`;
+function spark(s){
+  const c = s.close.slice(-126), w = 300, h = 64, lo = Math.min(...c), hi = Math.max(...c), y = v => h - 6 - (v - lo) / ((hi - lo) || 1) * (h - 12), x = i => 4 + i * (w - 8) / (c.length - 1);
+  const d = c.map((v,i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(''), up = c[c.length-1] >= c[0];
+  return `<svg viewBox="0 0 ${w} ${h}" class="spark" role="img" aria-label="${T('Cours sur 6 mois', '6-month price')}"><path d="${d}" fill="none" stroke="${up ? 'var(--s0)' : 'var(--s3)'}" stroke-width="1.6"/><circle cx="${x(c.length-1)}" cy="${y(c[c.length-1])}" r="2.6" fill="var(--accent)"/></svg>`;
+}
+function marketHTML(z){
+  const seen = new Set(), items = [];
+  z.contrats_fr.forEach((cfr, i) => { const p = priceInfo(cfr); if (!p || seen.has(p.ticker)) return; seen.add(p.ticker); items.push({cfr, name: z.contrats[i], p}); });
+  if (!items.length) return `<div class="card"><div class="sect"><h3>${T('Marché', 'Market')}</h3></div><p class="hint" style="margin:6px 0 0">${T('Pas de cotation gratuite disponible pour', 'No free quote available for')} ${esc(z.contrats.join(', '))}.</p></div>`;
+  const a = z.alertes[0];
+  const rows = items.map(({cfr, name, p}) => { const s = p.s, L = s.close.length, last = s.close[L-1];
+    const ref = p.direct ? '' : `<div class="hint">${T('Pas de cotation gratuite pour', 'No free quote for')} ${esc(name)}${T(' : ', ': ')}${T('référence liquide la plus proche', 'closest liquid benchmark')}</div>`;
+    return `<div class="mk">${ref}<div class="mkh"><b>${esc(EN ? tr(s.nom) : s.nom)}</b><span class="num">${fr(last)} <span class="muted">${esc(s.unite)}</span></span></div>
+      ${spark(s)}
+      <div class="mkc"><span>${T('1 sem.', '1 wk')} <b class="num ${chg(s,5) >= 0 ? 'up' : 'down'}">${pct(chg(s,5))}</b></span><span>${T('1 mois', '1 mo')} <b class="num ${chg(s,21) >= 0 ? 'up' : 'down'}">${pct(chg(s,21))}</b></span><span>${T('3 mois', '3 mo')} <b class="num ${chg(s,63) >= 0 ? 'up' : 'down'}">${pct(chg(s,63))}</b></span><span class="muted">${T('clôture du', 'close')} ${fday(s.dates[L-1])}</span></div></div>`; }).join('');
+  let read = '';
+  if (a){ const p = priceInfo(a.contrat_fr), c1 = p ? chg(p.s, 21) : null, bull = ['haussière','bullish'].includes(a.direction), bear = ['baissière','bearish'].includes(a.direction);
+    if (c1 != null && (bull || bear)){
+      const moved = bull ? c1 >= 5 : c1 <= -5, against = bull ? c1 <= -2 : c1 >= 2;
+      read = moved ? T(`Le contrat a déjà ${bull ? 'monté' : 'baissé'} de ${pct(Math.abs(c1)).replace(/^[+−]/,'')} en un mois : une partie du risque météo est peut-être déjà dans les prix.`, `The contract has already ${bull ? 'risen' : 'fallen'} ${pct(Math.abs(c1)).replace(/^[+−]/,'')} in a month: part of the weather risk may already be priced in.`)
+        : against ? T(`Le contrat a évolué en sens inverse sur un mois (${pct(c1)}) : le marché ne semble pas encore intégrer ce risque, ou d'autres facteurs dominent.`, `The contract moved the other way over a month (${pct(c1)}): the market does not seem to price this risk yet, or other drivers dominate.`)
+        : T(`Le contrat a peu bougé sur un mois (${pct(c1)}) : le signal météo n'est pas encore visible dans les prix.`, `The contract has barely moved over a month (${pct(c1)}): the weather signal is not yet visible in prices.`);
+      read = `<p class="mkread">${read}</p>`;
+    }
+  }
+  return `<div class="card"><div class="sect"><h3>${T('Marché', 'Market')}</h3><span class="eyebrow">${T('6 derniers mois', 'last 6 months')}</span></div>${read}${rows}
+    <p class="hint" style="margin:8px 0 0">${T('Contrat le plus proche, clôtures quotidiennes (Yahoo Finance). Information, pas une recommandation.', 'Front-month contract, daily closes (Yahoo Finance). Information, not a recommendation.')}</p></div>`;
+}
+
+/* ================= actualités de la zone ================= */
+function renderNews(){
+  const z = byId[state.sel], N = (X.news && X.news.zones && X.news.zones[z.id]) || [];
+  $('news').innerHTML = `<h2>${T('Actualités', 'News')} <span class="eyebrow">${esc(z.pays)} · ${esc(z.cultures.slice(0,2).join(', '))}</span></h2>` + (N.length
+    ? `<ul class="nlist">${N.map(a => `<li><a href="${esc(a.lien)}" target="_blank" rel="noopener noreferrer">${esc(a.titre)}</a><span class="muted">${esc(a.source)}${a.date ? ' · ' + fday(a.date) : ''}</span></li>`).join('')}</ul>
+       <p class="hint" style="margin:6px 0 0">${T("Titres sélectionnés automatiquement (Google News, articles en anglais des 14 derniers jours), liens vers les éditeurs.", 'Headlines picked automatically (Google News, last 14 days), linking to the publishers.')}</p>`
+    : `<p class="hint" style="margin:6px 0 0">${X.news ? T('Pas d\'article récent trouvé pour cette zone.', 'No recent article found for this zone.') : T('Les actualités apparaîtront après le prochain calcul quotidien.', 'News will appear after the next daily run.')}</p>`);
+}
+
+/* ================= backtest 1991-2020 ================= */
+const BT = X.backtest || null;
+const SEVC = s => s ? `var(--s${s})` : 'var(--line)';
+function btFreq(r){ const b = BT && BT.regles && BT.regles[r.id]; return b && b.publie ? b : null; }
+function btHTML(z){
+  if (!BT || !BT.zones || !BT.zones[z.id]) return `<p class="hint">${T("Le backtest sera disponible après le prochain calcul quotidien.", 'The backtest will be available after the next daily run.')}</p>`;
+  const yrs = BT.zones[z.id], keys = Object.keys(yrs).sort(), anyPub = z.regles.some(btFreq);
+  if (!anyPub) return `<p class="hint">${T("Backtest en attente : l'historique 1991-2020 de cette zone est encore en cours de téléchargement.", 'Backtest pending: the 1991-2020 history of this zone is still downloading.')}</p>`;
+  const nAl = keys.filter(y => yrs[y] > 0).length, partial = z.regles.some(r => !btFreq(r));
+  const strip = `<div class="btstrip">${keys.map(y => `<span title="${y} : ${SEV[yrs[y]]}" style="background:${SEVC(yrs[y])}"></span>`).join('')}</div><div class="btyears"><span>${keys[0]}</span><span>${keys[keys.length-1]}</span></div>`;
+  const rows = z.regles.map(r => { const b = btFreq(r);
+    if (!b) return `<tr><td>${esc(r.phenomene)}</td><td class="num muted">-</td><td class="muted">${T('historique incomplet', 'history incomplete')}</td></tr>`;
+    const ys = Object.keys(b.annees), f = b.frequence;
+    const flag = f >= 40 ? `<span class="st" style="color:var(--s2)">${T('très fréquente : seuil à durcir', 'very frequent: threshold too loose')}</span>` : f <= 3 ? `<span class="st muted">${T('très rare', 'very rare')}</span>` : '';
+    return `<tr><td>${esc(r.phenomene)}<br><span class="muted">${esc(r.culture)}</span></td><td class="num">${f}${EN ? '%' : ' %'}<br><span class="muted">${ys.length}/${b.annees_evaluees}</span></td><td>${ys.length ? ys.map(y => `<span class="yr" style="--c:${SEVC(b.annees[y])}">${y.slice(2)}</span>`).join('') : `<span class="muted">${T('jamais', 'never')}</span>`} ${flag}</td></tr>`; }).join('');
+  const evs = (BT.evenements || []).filter(e => e.zone === z.id);
+  const evh = evs.length ? `<h4 class="bth">${T('Chocs historiques connus', 'Known historical shocks')}</h4><ul class="evl">${evs.map(evItem).join('')}</ul>` : '';
+  return `<p class="hint" style="margin:0 0 8px">${T(`En rejouant les règles sur 1991-2020, cette zone aurait été en alerte ${nAl} années sur ${keys.length}${partial ? ' (règles déjà évaluables seulement)' : ''}.`, `Replaying the rules over 1991-2020, this zone would have been on alert in ${nAl} of ${keys.length} years${partial ? ' (rules with complete history only)' : ''}.`)}</p>${strip}
+    <div class="tscroll" style="margin-top:10px"><table class="t"><thead><tr><th>${T('Règle', 'Rule')}</th><th class="num">${T('Fréquence', 'Frequency')}</th><th>${T('Années d\'alerte', 'Alert years')}</th></tr></thead><tbody>${rows}</tbody></table></div>${evh}
+    <p class="hint" style="margin:8px 0 0">${T('Méthode : prévision parfaite (on remplace les prévisions par ce qui s\'est réellement passé, réanalyse ERA5) et normales 1991-2020 incluant l\'année testée. Une règle qui se déclenche plus de 40 % des années est trop sensible.', 'Method: perfect forecast (forecasts replaced by what actually happened, ERA5 reanalysis) and 1991-2020 normals including the tested year. A rule firing in more than 40% of years is too loose.')}</p>`;
+}
+const evItem = e => `<li><span class="evs ${e.detecte === true ? 'ok' : e.detecte === false ? 'ko' : ''}">${e.detecte === true ? '✓' : e.detecte === false ? '✗' : '…'}</span><span>${esc(EN ? e.en : e.fr)}${e.detecte === true ? ` <span class="muted">· ${esc(e.regles.map(h => tr(h.phenomene)).join(', '))}</span>` : e.detecte == null ? ` <span class="muted">· ${T('historique incomplet', 'history incomplete')}</span>` : ''}</span></li>`;
+function renderBtGlobal(){
+  const evs = (BT && BT.evenements) || [];
+  if (!evs.length){ $('btglobal').innerHTML = ''; return; }
+  const done = evs.filter(e => e.detecte != null), ok = done.filter(e => e.detecte);
+  $('btglobal').innerHTML = `<div class="card" style="margin-top:18px"><div class="sect"><h3>${T('Backtest 1991-2020 : les grands chocs météo', 'Backtest 1991-2020: major weather shocks')}</h3><span class="eyebrow">${done.length ? `${ok.length}/${done.length} ${T('détectés', 'detected')}` : T('en cours', 'in progress')}</span></div>
+    <p class="hint" style="margin:4px 0 8px">${T("Les règles du site auraient-elles signalé les chocs qui ont fait bouger les marchés ? Vérification automatique sur l'historique ERA5.", "Would the site's rules have flagged the shocks that moved markets? Automatic check on ERA5 history.")}${done.length < evs.length ? ' ' + T(`${evs.length - done.length} chocs attendent la fin du téléchargement de l'historique.`, `${evs.length - done.length} shocks await the end of the history download.`) : ''}</p>
+    <details${done.length ? ' open' : ''}><summary class="hint" style="cursor:pointer">${T(`Voir les ${evs.length} chocs testés`, `Show the ${evs.length} shocks tested`)}</summary>
+    <ul class="evl">${evs.map(e => `<li style="cursor:pointer" data-z="${e.zone}">${evItem(e).slice(4)}`).join('')}</ul></details></div>`;
+  $('btglobal').querySelectorAll('li[data-z]').forEach(li => li.onclick = () => select(li.dataset.z, true));
 }
 
 /* ================= fiche zone ================= */
 function select(id, scroll){
-  state.picked = true; state.sel = id; drawZones(); renderFiche();
+  state.picked = true; state.sel = id; drawZones(); renderFiche(); renderNews();
   if (scroll && window.matchMedia('(max-width:900px)').matches) $('fiche').scrollIntoView({behavior:'smooth', block:'start'});
 }
 function scoreGauge(z){
@@ -637,53 +818,76 @@ function scoreGauge(z){
     <text x="${cx}" y="${cy+6}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700" fill="var(--ink)">${z.score}</text></svg>`;
 }
 function encadreHTML(z){
-  const own = state.llm[z.id]?.out, e = own || z.encadre;
+  const own = state.llm[z.id]?.out, e = own || (EN ? (z.alertes.length ? templateEncadreEN(z) : null) : z.encadre);
   if (!e){
+    const bulletin = EN || !z.bulletin ? calmBulletin(z, z.metriques, z.stades) : z.bulletin;
     return `<div class="card encadre" style="--c:var(--s0)">
       <div class="eyebrow">Bulletin · ${fdate(D.date_du_jour)}</div>
-      <h3>${esc(z.pays)} - ${esc(z.nom)} : pas d'alerte</h3>
-      <dl><div><dt>Ce qui se passe</dt><dd>${esc(z.bulletin)}</dd></div>
-      <div><dt>Pour le marché</dt><dd>Pas de pression d'origine météo identifiée sur ${esc(z.contrats.join(', '))} à ce stade.</dd></div></dl>
+      <h3>${esc(z.pays)} - ${esc(z.nom)}${T(" : pas d'alerte", ': no alert')}</h3>
+      <dl><div><dt>${T('Ce qui se passe', "What's happening")}</dt><dd>${esc(bulletin)}</dd></div>
+      <div><dt>${T('Pour le marché', 'For the market')}</dt><dd>${T("Pas de pression d'origine météo identifiée sur", 'No weather-driven pressure identified on')} ${esc(z.contrats.join(', '))}${T(' à ce stade.', ' at this stage.')}</dd></div></dl>
       ${llmControls(z)}</div>`;
   }
   const s = z.sev;
   let gen;
   if (own) gen = "Rédigé à l'instant par Claude";
-  else if (e.source === 'gabarit') gen = 'Texte automatique construit à partir des chiffres de la fiche';
+  else if (e.source === 'gabarit') gen = T('Texte automatique construit à partir des chiffres de la fiche', 'Automatic text built from the figures on this sheet');
   else gen = 'Rédigé par Claude à partir des seules données de la fiche';
   if (e.ecrit_le && !own) gen += `, le ${fdate(e.ecrit_le)} ; les graphiques et chiffres clés sont à jour`;
   return `<div class="card encadre" style="--c:${sevVar(s)}">
     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">${sevBadge(s)}<span class="eyebrow">${fdate(D.date_du_jour)}</span></div>
     <h3>${esc(e.titre)}</h3>
     <dl>
-      <div><dt>Ce qui se passe</dt><dd>${esc(e.ce_qui_se_passe)}</dd></div>
-      <div><dt>Pour la culture</dt><dd>${esc(e.impact_culture)}</dd></div>
-      <div><dt>Pour le marché</dt><dd>${esc(e.impact_marche)}
-        <div class="mkt">${[...new Set(z.alertes.map(a => a.contrat))].map(c => `<span>${esc(c)}</span>`).join('')}<span>pression ${esc(e.direction || z.alertes[0]?.direction)}${e.intensite ? ', ' + esc(e.intensite) : ''}</span></div></dd></div>
-      <div><dt>À surveiller</dt><dd>${esc(e.a_surveiller)}</dd></div>
-      <div><dt>Confiance</dt><dd>${esc(e.confiance)}</dd></div>
+      <div><dt>${T('Ce qui se passe', "What's happening")}</dt><dd>${esc(e.ce_qui_se_passe)}</dd></div>
+      <div><dt>${T('Pour la culture', 'For the crop')}</dt><dd>${esc(e.impact_culture)}</dd></div>
+      <div><dt>${T('Pour le marché', 'For the market')}</dt><dd>${esc(e.impact_marche)}
+        <div class="mkt">${[...new Set(z.alertes.map(a => a.contrat))].map(c => `<span>${esc(c)}</span>`).join('')}<span>${EN ? `${esc(e.direction || z.alertes[0]?.direction)} pressure` : `pression ${esc(e.direction || z.alertes[0]?.direction)}`}${e.intensite ? ', ' + esc(e.intensite) : ''}</span></div></dd></div>
+      <div><dt>${T('À surveiller', 'What to watch')}</dt><dd>${esc(e.a_surveiller)}</dd></div>
+      <div><dt>${T('Confiance', 'Confidence')}</dt><dd>${esc(e.confiance)}</dd></div>
     </dl>
     ${e.resume_une_ligne ? `<p class="resume">${esc(e.resume_une_ligne)}</p>` : ''}
-    ${z.alertes.length > 1 ? `<p class="hint" style="margin:8px 0 0">Autres signaux : ${z.alertes.slice(1).map(a => esc(a.phenomene.toLowerCase())).join(', ')}.</p>` : ''}
+    ${z.alertes.length > 1 ? `<p class="hint" style="margin:8px 0 0">${T('Autres signaux :', 'Other signals:')} ${z.alertes.slice(1).map(a => esc(a.phenomene.toLowerCase())).join(', ')}.</p>` : ''}
     <div class="meta"><span>${gen}</span></div>
     ${llmControls(z)}</div>`;
 }
 function llmControls(z){
   const st = state.llm[z.id] || {};
-  if (!sampleFn) return '';
+  if (!sampleFn || EN) return '';
   return `<div class="meta" style="margin-top:10px"><button class="btn ghost" id="llm-go" ${st.busy?'disabled':''}>${st.busy ? 'Rédaction en cours…' : (z.alertes.length ? 'Régénérer avec Claude' : 'Demander une analyse à Claude')}</button>
     ${st.busy ? '<button class="btn ghost" id="llm-stop">Arrêter</button>' : ''}
     <span id="llm-msg" class="${st.err?'err':''}">${esc(st.msg || '')}</span></div>`;
 }
 function rankText(r){
   if (r == null) return '';
+  if (EN){
+    if (r === 0) return 'Drier than every year in 1991-2020.';
+    if (r === 100) return 'Wetter than every year in 1991-2020.';
+    if (r <= 10) return `A total this low happens only ${r} years in 100.`;
+    if (r >= 90) return `A total this high happens only ${100 - r} years in 100.`;
+    return 'Within the usual range of the last 30 years.';
+  }
   if (r === 0) return 'Plus sec que chacune des années 1991-2020.';
   if (r === 100) return 'Plus humide que chacune des années 1991-2020.';
   if (r <= 10) return `Un total aussi faible n'arrive que ${r} années sur 100.`;
   if (r >= 90) return `Un total aussi élevé n'arrive que ${100 - r} années sur 100.`;
   return 'Dans la fourchette habituelle des 30 dernières années.';
 }
+function plainHTMLen(z){
+  const m = z.metriques, t = m.tx_fc7_anom;
+  const tl = t == null ? 'departure from normal being computed' : Math.abs(t) < 1 ? 'close to seasonal normals' : `${n1(Math.abs(t))} °C ${t>0?'above':'below'} normal`;
+  const rows = [['°C', `Week ahead: highs ${tl} (up to ${n1(m.tx_fc7_max)} °C), lows down to ${n1(m.tn_fc7_min)} °C.`]];
+  if (m.pr_obs30_normal == null) rows.push(['mm', `Last 30 days: ${m.pr_obs30_mm} mm of rain (normal being computed).`]);
+  else if (m.pr_obs30_normal >= 15) rows.push(['mm', `Last 30 days: ${m.pr_obs30_mm} mm of rain, ${m.pr_obs30_pct}% of normal. ${rankText(m.pr_obs30_rank)}`]);
+  else rows.push(['mm', `Last 30 days: ${m.pr_obs30_mm} mm, in the middle of the dry season (normal ${m.pr_obs30_normal} mm).`]);
+  if (m.pr_fc14_normal == null) rows.push(['→', `Next 14 days: ${m.pr_fc14_mm} mm expected.`]);
+  else if (m.pr_fc14_normal >= 15) rows.push(['→', `Next 14 days: ${m.pr_fc14_mm} mm expected, ${m.pr_fc14_pct}% of normal.`]);
+  else rows.push(['→', `Next 14 days: ${m.pr_fc14_mm} mm expected (normal ${m.pr_fc14_normal} mm).`]);
+  rows.push(['◷', `Current stage: ${stagesText(z.stades)}.`]);
+  return `<div class="card"><div class="sect"><h3>Key figures, in plain words</h3></div><ul class="plain">${rows.map(([i,t]) => `<li><span class="ic">${i}</span><span>${esc(t)}</span></li>`).join('')}</ul>
+    <p class="hint" style="margin:10px 0 0">${esc(z.poids_mondial)}.</p></div>`;
+}
 function plainHTML(z){
+  if (EN) return plainHTMLen(z);
   const m = z.metriques, t = m.tx_fc7_anom;
   const tl = t == null ? 'écart à la normale en cours de calcul' : Math.abs(t) < 1 ? 'proches des normales de saison' : `${n1(Math.abs(t))} °C ${t>0?'au-dessus':'en dessous'} des normales`;
   const rows = [['°C', `Semaine à venir : maximales ${tl} (jusqu'à ${n1(m.tx_fc7_max)} °C), minimales jusqu'à ${n1(m.tn_fc7_min)} °C.`]];
@@ -698,23 +902,25 @@ function plainHTML(z){
   return `<div class="card"><div class="sect"><h3>Les chiffres clés, en clair</h3></div><ul class="plain">${rows.map(([i,t]) => `<li><span class="ic">${i}</span><span>${esc(t)}</span></li>`).join('')}</ul>
     <p class="hint" style="margin:10px 0 0">${esc(z.poids_mondial)}.</p></div>`;
 }
+const TABS = T([['temp','Températures'],['rain','Pluie'],['ind','Indicateurs'],['rules','Règles'],['bt','Backtest']], [['temp','Temperature'],['rain','Rain'],['ind','Indicators'],['rules','Rules'],['bt','Backtest']]);
 function renderFiche(){
   const z = byId[state.sel];
   $('fiche').innerHTML = `
-    <div class="zhead"><div class="t"><div class="eyebrow">${esc(z.continent)} · ${esc(z.pays)}</div><h2>${esc(z.nom)}</h2>
+    <div class="zhead"><div class="t"><div class="eyebrow">${esc(tr(z.continent_fr))} · ${esc(z.pays)}</div><h2>${esc(z.nom)}</h2>
       <div class="cults">${z.cultures.map(c => `<span>${esc(c)}</span>`).join('')}</div></div>
-      <div class="score">${scoreGauge(z)}<div class="l">Risque</div></div></div>
+      <div class="score">${scoreGauge(z)}<div class="l">${T('Risque', 'Risk')}</div></div></div>
     ${encadreHTML(z)}
-    ${z.metriques.normales ? '' : '<p class="hint" style="margin:0">Normales 1991-2020 de cette zone en cours de constitution : les écarts à la normale apparaîtront dans les prochains jours.</p>'}
+    ${z.metriques.normales ? '' : `<p class="hint" style="margin:0">${T('Normales 1991-2020 de cette zone en cours de constitution : les écarts à la normale apparaîtront dans les prochains jours.', "This zone's 1991-2020 normals are still being built: departures from normal will appear in the coming days.")}</p>`}
+    ${marketHTML(z)}
     <div class="public-only">${plainHTML(z)}</div>
     <div class="card analyst-only">
       <div class="tabs" role="tablist">
-        ${[['temp','Températures'],['rain','Pluie'],['ind','Indicateurs'],['rules','Règles']].map(([k,l]) => `<button role="tab" id="t-${k}" aria-selected="${state.tab===k}">${l}</button>`).join('')}
+        ${TABS.map(([k,l]) => `<button role="tab" id="t-${k}" aria-selected="${state.tab===k}">${l}</button>`).join('')}
       </div>
       <div id="tabbody"></div>
     </div>
-    <div class="card"><div class="sect"><h3>Calendrier cultural</h3><span class="eyebrow">${MOIS[month-1]} en cours</span></div>${calHTML(z)}</div>`;
-  ['temp','rain','ind','rules'].forEach(k => $('t-'+k).onclick = () => { state.tab = k; renderFiche(); });
+    <div class="card"><div class="sect"><h3>${T('Calendrier cultural', 'Crop calendar')}</h3><span class="eyebrow">${T(`${MOIS[month-1]} en cours`, `current: ${MOIS[month-1]}`)}</span></div>${calHTML(z)}</div>`;
+  TABS.forEach(([k]) => $('t-'+k).onclick = () => { state.tab = k; renderFiche(); });
   if (state.view === 'analyst') renderTab(z);
   const go = $('llm-go'); if (go) go.onclick = () => runLLM(z);
   const stop = $('llm-stop'); if (stop) stop.onclick = () => state.llm[z.id]?.ctl?.abort();
@@ -725,7 +931,7 @@ function calHTML(z){
     h += `<span class="lab" title="${esc(c.culture)} : ${esc(c.etape)}">${esc(c.etape)} <span class="muted">· ${esc(c.culture)}</span></span>`;
     for (let i = 1; i <= 12; i++) h += `<span class="c ${c.mois.includes(i)?'l'+c.niveau:''} ${i===month?'now':''}"></span>`;
   });
-  return h + `</div><div class="ckey" style="margin-top:8px"><span><i class="b" style="--c:var(--accent);opacity:.3"></i>peu sensible</span><span><i class="b" style="--c:var(--accent);opacity:.6"></i>sensible</span><span><i class="b" style="--c:var(--accent)"></i>critique</span></div>`;
+  return h + `</div><div class="ckey" style="margin-top:8px"><span><i class="b" style="--c:var(--accent);opacity:.3"></i>${T('peu sensible', 'low sensitivity')}</span><span><i class="b" style="--c:var(--accent);opacity:.6"></i>${T('sensible', 'sensitive')}</span><span><i class="b" style="--c:var(--accent)"></i>${T('critique', 'critical')}</span></div>`;
 }
 
 /* ================= onglets analyste ================= */
@@ -735,13 +941,14 @@ function renderTab(z){
   if (state.tab === 'rain') b.innerHTML = rainChart(z);
   if (state.tab === 'ind') b.innerHTML = indTable(z);
   if (state.tab === 'rules') b.innerHTML = rulesTable(z);
+  if (state.tab === 'bt') b.innerHTML = btHTML(z);
 }
 const CW = 400, CH = 210, M = {l:32, r:10, t:10, b:22};
 function xScale(){ return d3.scaleLinear().domain([0, D.time.length-1]).range([M.l, CW-M.r]); }
 function xAxis(x){
   let s = '';
   D.time.forEach((t,i) => { if ((i - D.i0) % 7 === 0) s += `<line class="gl" x1="${x(i)}" x2="${x(i)}" y1="${M.t}" y2="${CH-M.b}" opacity=".5"/><text class="ax" x="${x(i)}" y="${CH-6}" text-anchor="middle">${fday(t)}</text>`; });
-  s += `<line class="today" x1="${x(D.i0)}" x2="${x(D.i0)}" y1="${M.t}" y2="${CH-M.b}"/><text class="ax" x="${x(D.i0)+4}" y="${M.t+9}">prévision →</text>`;
+  s += `<line class="today" x1="${x(D.i0)}" x2="${x(D.i0)}" y1="${M.t}" y2="${CH-M.b}"/><text class="ax" x="${x(D.i0)+4}" y="${M.t+9}">${T('prévision →', 'forecast →')}</text>`;
   return s;
 }
 function yAxis(y, fmt){ return y.ticks(5).map(v => `<line class="gl" x1="${M.l}" x2="${CW-M.r}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${M.l-5}" y="${y(v)+3.5}" text-anchor="end">${fmt(v)}</text>`).join(''); }
@@ -752,7 +959,7 @@ function tempChart(z){
   const band = d3.area().defined((d,i) => s.ntx[i] != null && s.ntn[i] != null).x((d,i) => x(i)).y0((d,i) => y(s.ntn[i])).y1((d,i) => y(s.ntx[i]));
   const ln = (arr, a, b) => d3.line().defined(d => d[1] != null).x(d => x(d[0])).y(d => y(d[1]))(arr.map((v,i) => [i,v]).slice(a,b)) || '';
   const nl = arr => d3.line().defined(d => d != null).x((d,i) => x(i)).y(d => y(d))(arr) || '';
-  return `<div class="chart"><svg viewBox="0 0 ${CW} ${CH}" role="img" aria-label="Températures observées et prévues comparées aux normales">
+  return `<div class="chart"><svg viewBox="0 0 ${CW} ${CH}" role="img" aria-label="${T('Températures observées et prévues comparées aux normales', 'Observed and forecast temperatures against normals')}">
     ${yAxis(y, v => v + '°')}${xAxis(x)}
     <path d="${band(s.ntx) || ''}" fill="var(--band)"/>
     <path d="${nl(s.ntx)}" fill="none" stroke="var(--faint)" stroke-width="1" stroke-dasharray="2 2"/>
@@ -762,8 +969,8 @@ function tempChart(z){
     <path d="${ln(s.tn, 0, D.i0+1)}" fill="none" stroke="var(--fc)" stroke-width="1.8"/>
     <path d="${ln(s.tn, D.i0, n)}" fill="none" stroke="var(--fc)" stroke-width="1.8" stroke-dasharray="4 3"/>
     </svg>
-    <div class="ckey"><span><i style="--c:var(--s3)"></i>Tmax</span><span><i style="--c:var(--fc)"></i>Tmin</span><span><i class="d" style="--c:var(--ink)"></i>prévision</span><span><i class="b" style="--c:var(--band)"></i>normales 1991-2020</span></div>
-    <p class="hint" style="margin:8px 0 0">Tmax 7 j : <span class="num">${signC(m.tx_fc7_anom)}</span> vs normale (z = <span class="num">${n1(m.tx_fc7_z)}</span>) · 7 j passés : <span class="num">${signC(m.tx_obs7_anom)}</span></p></div>`;
+    <div class="ckey"><span><i style="--c:var(--s3)"></i>Tmax</span><span><i style="--c:var(--fc)"></i>Tmin</span><span><i class="d" style="--c:var(--ink)"></i>${T('prévision', 'forecast')}</span><span><i class="b" style="--c:var(--band)"></i>${T('normales 1991-2020', '1991-2020 normals')}</span></div>
+    <p class="hint" style="margin:8px 0 0">${T('Tmax 7 j :', 'Tmax 7 d:')} <span class="num">${signC(m.tx_fc7_anom)}</span> ${T('vs normale', 'vs normal')} (z = <span class="num">${n1(m.tx_fc7_z)}</span>) · ${T('7 j passés :', 'past 7 d:')} <span class="num">${signC(m.tx_obs7_anom)}</span></p></div>`;
 }
 function rainChart(z){
   const s = z.series, x = xScale(), n = D.time.length, m = z.metriques;
@@ -775,32 +982,33 @@ function rainChart(z){
   const bars = s.pr.map((v,i) => v ? `<rect x="${x(i)-bw/2}" y="${yb(v)}" width="${bw}" height="${yb(0)-yb(v)}" fill="${i<D.i0?'var(--rain)':'var(--rain-fc)'}"/>` : '').join('');
   const l = arr => d3.line().x((d,i) => x(i)).y(d => yc(d))(arr);
   const right = yc.ticks(4).map(v => `<text class="ax" x="${CW-M.r+4}" y="${yc(v)+3.5}">${v}</text>`).join('');
-  return `<div class="chart"><svg viewBox="0 0 ${CW+24} ${CH}" role="img" aria-label="Pluie quotidienne et cumul comparé à la normale">
+  return `<div class="chart"><svg viewBox="0 0 ${CW+24} ${CH}" role="img" aria-label="${T('Pluie quotidienne et cumul comparé à la normale', 'Daily rain and cumulative total against normal')}">
     ${yAxis(yb, v => v)}${xAxis(x)}${bars}
     ${hasN ? `<path d="${l(nc)}" fill="none" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="2 2"/>` : ''}
     <path d="${l(c)}" fill="none" stroke="var(--ink)" stroke-width="1.8"/>${right}
     </svg>
-    <div class="ckey"><span><i class="b" style="--c:var(--rain)"></i>pluie du jour (mm, axe gauche)</span><span><i class="b" style="--c:var(--rain-fc)"></i>prévue</span><span><i style="--c:var(--ink)"></i>cumul (mm, axe droit)</span>${hasN ? '<span><i class="d" style="--c:var(--faint)"></i>cumul normal</span>' : ''}</div>
-    <p class="hint" style="margin:8px 0 0">30 j : <span class="num">${m.pr_obs30_mm} mm</span>${m.pr_obs30_normal != null ? ` pour une normale de <span class="num">${m.pr_obs30_normal} mm</span>` : ''}${m.pr_obs30_rank != null ? ` (rang ${m.pr_obs30_rank}/100)` : ''} · bilan pluie - ETP : <span class="num">${m.wb_obs30} mm</span></p></div>`;
+    <div class="ckey"><span><i class="b" style="--c:var(--rain)"></i>${T('pluie du jour (mm, axe gauche)', 'daily rain (mm, left axis)')}</span><span><i class="b" style="--c:var(--rain-fc)"></i>${T('prévue', 'forecast')}</span><span><i style="--c:var(--ink)"></i>${T('cumul (mm, axe droit)', 'cumulative (mm, right axis)')}</span>${hasN ? `<span><i class="d" style="--c:var(--faint)"></i>${T('cumul normal', 'normal cumulative')}</span>` : ''}</div>
+    <p class="hint" style="margin:8px 0 0">${T('30 j :', '30 d:')} <span class="num">${m.pr_obs30_mm} mm</span>${m.pr_obs30_normal != null ? ` ${T('pour une normale de', 'vs a normal of')} <span class="num">${m.pr_obs30_normal} mm</span>` : ''}${m.pr_obs30_rank != null ? ` (${T('rang', 'rank')} ${m.pr_obs30_rank}/100)` : ''} · ${T('bilan pluie - ETP :', 'rain minus ET0:')} <span class="num">${m.wb_obs30} mm</span></p></div>`;
 }
 function indTable(z){
-  const m = z.metriques, nd = v => v == null ? 'n.d.' : v;
+  const m = z.metriques, nd = v => v == null ? ND : v, an = T('écart à la normale', 'departure from normal'), nm = T('normale', 'normal'), rk = T('rang', 'rank'), pc = EN ? '%' : ' %';
   const rows = [
-    ['Tmax moyenne, 7 j prévus', signC(m.tx_fc7_anom), 'écart à la normale'],
-    ['Tmax, z-score 7 j', n1(m.tx_fc7_z), 'écart / écart-type journalier'],
-    ['Tmax moyenne, 7 j passés', signC(m.tx_obs7_anom), 'écart à la normale'],
-    ['Tmin moyenne, 7 j prévus', signC(m.tn_fc7_anom), 'écart à la normale'],
-    ['Tmax la plus haute, 7 j', n1(m.tx_fc7_max) + ' °C', 'prévision'],
-    ['Tmin la plus basse, 7 j', n1(m.tn_fc7_min) + ' °C', 'prévision'],
-    ['Pluie, 30 j passés', m.pr_obs30_mm + ' mm', `normale ${nd(m.pr_obs30_normal)} mm · ${nd(m.pr_obs30_pct)} % · rang ${nd(m.pr_obs30_rank)}`],
-    ['Pluie, 14 j prévus', m.pr_fc14_mm + ' mm', `normale ${nd(m.pr_fc14_normal)} mm · ${nd(m.pr_fc14_pct)} % · rang ${nd(m.pr_fc14_rank)}`],
-    ['Bilan pluie - ETP, 30 j', m.wb_obs30 + ' mm', "négatif = sol qui s'assèche"],
+    [T('Tmax moyenne, 7 j prévus', 'Mean Tmax, next 7 d'), signC(m.tx_fc7_anom), an],
+    [T('Tmax, z-score 7 j', 'Tmax z-score, 7 d'), n1(m.tx_fc7_z), T('écart / écart-type journalier', 'departure / daily std. dev.')],
+    [T('Tmax moyenne, 7 j passés', 'Mean Tmax, past 7 d'), signC(m.tx_obs7_anom), an],
+    [T('Tmin moyenne, 7 j prévus', 'Mean Tmin, next 7 d'), signC(m.tn_fc7_anom), an],
+    [T('Tmax la plus haute, 7 j', 'Highest Tmax, 7 d'), n1(m.tx_fc7_max) + ' °C', T('prévision', 'forecast')],
+    [T('Tmin la plus basse, 7 j', 'Lowest Tmin, 7 d'), n1(m.tn_fc7_min) + ' °C', T('prévision', 'forecast')],
+    [T('Pluie, 30 j passés', 'Rain, past 30 d'), m.pr_obs30_mm + ' mm', `${nm} ${nd(m.pr_obs30_normal)} mm · ${nd(m.pr_obs30_pct)}${pc} · ${rk} ${nd(m.pr_obs30_rank)}`],
+    [T('Pluie, 14 j prévus', 'Rain, next 14 d'), m.pr_fc14_mm + ' mm', `${nm} ${nd(m.pr_fc14_normal)} mm · ${nd(m.pr_fc14_pct)}${pc} · ${rk} ${nd(m.pr_fc14_rank)}`],
+    [T('Bilan pluie - ETP, 30 j', 'Rain minus ET0, 30 d'), m.wb_obs30 + ' mm', T("négatif = sol qui s'assèche", 'negative = drying soil')],
   ];
-  return `<div class="tscroll"><table class="t"><thead><tr><th>Indicateur</th><th class="num">Valeur</th><th>Référence</th></tr></thead><tbody>
+  return `<div class="tscroll"><table class="t"><thead><tr><th>${T('Indicateur', 'Indicator')}</th><th class="num">${T('Valeur', 'Value')}</th><th>${T('Référence', 'Reference')}</th></tr></thead><tbody>
     ${rows.map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="muted">${r[2]}</td></tr>`).join('')}</tbody></table></div>
-    <p class="hint" style="margin:8px 0 0">Rang = position du cumul actuel parmi les 30 années 1991-2020 (0 = le plus sec, 100 = le plus humide). n.d. = normale pas encore disponible.</p>`;
+    <p class="hint" style="margin:8px 0 0">${T('Rang = position du cumul actuel parmi les 30 années 1991-2020 (0 = le plus sec, 100 = le plus humide). n.d. = normale pas encore disponible.', 'Rank = position of the current total among the 30 years 1991-2020 (0 = driest, 100 = wettest). n/a = normal not yet available.')}</p>`;
 }
-const METRIC = {pr_obs30_pct:'Pluie 30 j (% normale)', pr_fc14_pct:'Pluie prévue 14 j (% normale)', tn_fc7_min:'Tmin la plus basse 7 j (°C)', tx_fc7_max:'Tmax la plus haute 7 j (°C)', n_tx_gt:'Jours > {t} °C sur 10 j'};
+const METRIC = T({pr_obs30_pct:'Pluie 30 j (% normale)', pr_fc14_pct:'Pluie prévue 14 j (% normale)', tn_fc7_min:'Tmin la plus basse 7 j (°C)', tx_fc7_max:'Tmax la plus haute 7 j (°C)', n_tx_gt:'Jours > {t} °C sur 10 j'},
+  {pr_obs30_pct:'Rain 30 d (% normal)', pr_fc14_pct:'Rain forecast 14 d (% normal)', tn_fc7_min:'Lowest Tmin 7 d (°C)', tx_fc7_max:'Highest Tmax 7 d (°C)', n_tx_gt:'Days > {t} °C in 10 d'});
 function ruleValue(z, r){
   if (r.metrique === 'n_tx_gt'){ return z.series.tx.slice(D.i0, D.i0+10).filter(t => t != null && t > r.t).length; }
   const m = z.metriques;
@@ -808,19 +1016,20 @@ function ruleValue(z, r){
   return m[r.metrique];
 }
 function fmtU(x, r){
-  const u = r.metrique.endsWith('_pct') ? ' % de la normale' : r.metrique === 'n_tx_gt' ? ' j' : ' °C';
-  return String(x).replace('.', ',') + u;
+  const u = r.metrique.endsWith('_pct') ? T(' % de la normale', '% of normal') : r.metrique === 'n_tx_gt' ? T(' j', ' d') : ' °C';
+  return fr(x) + u;
 }
 function rulesTable(z){
   const rows = z.regles.map(r => {
     const active = r.mois.includes(month), hitA = z.alertes.find(a => a.id === r.id), v = ruleValue(z, r);
     const normalMissing = r.metrique.endsWith('_pct') && z.metriques[r.metrique.replace('_pct','_normal')] == null;
-    const st = hitA ? `<span class="st" style="color:${sevVar(hitA.severite)}">● ${SEV[hitA.severite]}</span>` : !active ? '<span class="st muted">hors saison</span>' : normalMissing ? '<span class="st muted">normale en calcul</span>' : v == null ? '<span class="st muted">saison sèche</span>' : '<span class="st" style="color:var(--s0)">○ non franchi</span>';
+    const st = hitA ? `<span class="st" style="color:${sevVar(hitA.severite)}">● ${SEV[hitA.severite]}</span>` : !active ? `<span class="st muted">${T('hors saison', 'out of season')}</span>` : normalMissing ? `<span class="st muted">${T('normale en calcul', 'normal pending')}</span>` : v == null ? `<span class="st muted">${T('saison sèche', 'dry season')}</span>` : `<span class="st" style="color:var(--s0)">○ ${T('non franchi', 'not crossed')}</span>`;
+    const b = btFreq(r), fq = b ? `<br><span class="muted">${T('backtest', 'backtest')} : ${b.frequence}${EN ? '%' : ' %'} ${T('des années', 'of years')}</span>` : '';
     return `<tr><td>${esc(r.phenomene)}<br><span class="muted">${esc(r.culture)} · ${r.mois.map(m => MOIS1[m-1]).join('')}</span></td>
-      <td>${esc(METRIC[r.metrique].replace('{t}', r.t))}</td><td class="num">${v == null ? '-' : fmtU(v, r)}<br><span class="muted">alerte si ${r.op === '<' ? '<' : r.op === '>' ? '>' : '≥'} ${fmtU(r.seuil, r)}</span></td><td>${st}</td></tr>`;
+      <td>${esc(METRIC[r.metrique].replace('{t}', r.t))}</td><td class="num">${v == null ? '-' : fmtU(v, r)}<br><span class="muted">${T('alerte si', 'alert if')} ${r.op === '<' ? '<' : r.op === '>' ? '>' : '≥'} ${fmtU(r.seuil, r)}</span></td><td>${st}${fq}</td></tr>`;
   }).join('');
-  return `<div class="tscroll"><table class="t"><thead><tr><th>Règle</th><th>Indicateur</th><th class="num">Valeur actuelle</th><th>Statut</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="hint" style="margin:8px 0 0">Seuils agronomiques de départ, à recalibrer par backtest. La sévérité monte d'un cran quand le seuil sévère est aussi franchi.</p>`;
+  return `<div class="tscroll"><table class="t"><thead><tr><th>${T('Règle', 'Rule')}</th><th>${T('Indicateur', 'Indicator')}</th><th class="num">${T('Valeur actuelle', 'Current value')}</th><th>${T('Statut', 'Status')}</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="hint" style="margin:8px 0 0">${T("Seuils agronomiques de départ ; l'onglet Backtest montre combien de fois chaque règle se serait déclenchée sur 1991-2020. La sévérité monte d'un cran quand le seuil sévère est aussi franchi.", 'Starting agronomic thresholds; the Backtest tab shows how often each rule would have fired over 1991-2020. Severity goes up one notch when the severe threshold is also crossed.')}</p>`;
 }
 
 /* ================= rédaction par Claude (dans claude.ai uniquement) ================= */
@@ -847,14 +1056,20 @@ async function runLLM(z){
 
 /* ================= pied de page ================= */
 function renderFoot(){
+  if (EN){
+    $('foot').innerHTML = `<div><b>Method.</b> Each zone is tracked through several representative points, weighted by their share of production${D0.poids_source ? ` (${esc(D0.poids_source)})` : ' (estimate)'}. The last 30 days come from model analyses and the next 16 from forecasts (Open-Meteo automatic blend: ECMWF, GFS, ICON...), fetched live when the page opens. Normals are computed over 1991-2020 (ERA5 reanalysis), smoothed over ±7 days. The rules engine crosses these indicators with each zone's crop calendar; alert boxes are rebuilt every morning.</div>
+  <div><b>Sources.</b> Open-Meteo Forecast and Historical APIs (ECMWF ERA5) · <a href="https://open-meteo.com/" target="_blank" rel="noopener">open-meteo.com</a> (CC BY 4.0) · futures prices: Yahoo Finance · news: Google News.</div>
+  <div><b>Disclaimer.</b> Information on weather conditions and their mechanisms, not investment advice. No price forecast is made here.</div>`;
+    return;
+  }
   $('foot').innerHTML = `<div><b>Méthode.</b> Chaque zone est suivie par plusieurs points représentatifs, pondérés selon leur part dans la production${D0.poids_source ? ` (${esc(D0.poids_source)})` : ' (estimation)'}. Les 30 derniers jours proviennent des analyses des modèles, les 16 suivants des prévisions (sélection automatique Open-Meteo : ECMWF, GFS, ICON…), récupérées en direct à l'ouverture de la page. Les normales sont calculées sur 1991-2020 (réanalyse ERA5), lissées sur ±7 jours. Le moteur de règles croise ces indicateurs avec le calendrier cultural de chaque zone ; les encadrés sont rédigés chaque matin.</div>
-  <div><b>Sources.</b> ${D0.sources.map(esc).join(' · ')} · <a href="https://open-meteo.com/" target="_blank" rel="noopener">open-meteo.com</a> (CC BY 4.0).</div>
+  <div><b>Sources.</b> ${D0.sources.map(esc).join(' · ')} · <a href="https://open-meteo.com/" target="_blank" rel="noopener">open-meteo.com</a> (CC BY 4.0) · cours des contrats : Yahoo Finance · actualités : Google News.</div>
   <div><b>Avertissement.</b> Information sur les conditions météo et leurs mécanismes, pas une recommandation d'investissement. Aucun prix n'est prévu ici.</div>`;
 }
 
-function refresh(){ drawZones(); renderFeed(); if (!visible(byId[state.sel])){ const f = zones.filter(visible).sort((a,b) => b.score-a.score)[0]; if (f) state.sel = f.id; } renderFiche(); }
+function refresh(){ drawZones(); renderFeed(); if (!visible(byId[state.sel])){ const f = zones.filter(visible).sort((a,b) => b.score-a.score)[0]; if (f) state.sel = f.id; } renderFiche(); renderNews(); }
 
-renderTop(); renderFilters(); renderLayers(); initMap(); renderLegend(); renderFeed(); renderFoot();
+renderTop(); renderFilters(); renderLayers(); initMap(); renderLegend(); renderFeed(); renderFoot(); renderNews(); renderBtGlobal();
 setView(state.view);
 drawZones();
 goLive(false);
