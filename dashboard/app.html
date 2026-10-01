@@ -807,15 +807,19 @@ function ruleValue(z, r){
   if (r.metrique.endsWith('_pct')){ const normal = m[r.metrique.replace('_pct','_normal')]; if (normal == null || normal < 15) return null; }
   return m[r.metrique];
 }
+function fmtU(x, r){
+  const u = r.metrique.endsWith('_pct') ? ' % de la normale' : r.metrique === 'n_tx_gt' ? ' j' : ' °C';
+  return String(x).replace('.', ',') + u;
+}
 function rulesTable(z){
   const rows = z.regles.map(r => {
     const active = r.mois.includes(month), hitA = z.alertes.find(a => a.id === r.id), v = ruleValue(z, r);
     const normalMissing = r.metrique.endsWith('_pct') && z.metriques[r.metrique.replace('_pct','_normal')] == null;
     const st = hitA ? `<span class="st" style="color:${sevVar(hitA.severite)}">● ${SEV[hitA.severite]}</span>` : !active ? '<span class="st muted">hors saison</span>' : normalMissing ? '<span class="st muted">normale en calcul</span>' : v == null ? '<span class="st muted">saison sèche</span>' : '<span class="st" style="color:var(--s0)">○ non franchi</span>';
     return `<tr><td>${esc(r.phenomene)}<br><span class="muted">${esc(r.culture)} · ${r.mois.map(m => MOIS1[m-1]).join('')}</span></td>
-      <td>${esc(METRIC[r.metrique].replace('{t}', r.t))}</td><td class="num">${v == null ? '-' : String(v).replace('.', ',')} ${r.op} ${String(r.seuil).replace('.', ',')}</td><td>${st}</td></tr>`;
+      <td>${esc(METRIC[r.metrique].replace('{t}', r.t))}</td><td class="num">${v == null ? '-' : fmtU(v, r)}<br><span class="muted">alerte si ${r.op === '<' ? '<' : r.op === '>' ? '>' : '≥'} ${fmtU(r.seuil, r)}</span></td><td>${st}</td></tr>`;
   }).join('');
-  return `<div class="tscroll"><table class="t"><thead><tr><th>Règle</th><th>Indicateur</th><th class="num">Valeur / seuil</th><th>Statut</th></tr></thead><tbody>${rows}</tbody></table></div>
+  return `<div class="tscroll"><table class="t"><thead><tr><th>Règle</th><th>Indicateur</th><th class="num">Valeur actuelle</th><th>Statut</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="hint" style="margin:8px 0 0">Seuils agronomiques de départ, à recalibrer par backtest. La sévérité monte d'un cran quand le seuil sévère est aussi franchi.</p>`;
 }
 
