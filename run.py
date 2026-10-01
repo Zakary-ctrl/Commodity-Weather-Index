@@ -29,6 +29,11 @@ def load_zones():
     return json.loads((ROOT / "config" / "zones.json").read_text())["zones"]
 
 
+def config_hash() -> str:
+    import hashlib
+    return hashlib.sha1((ROOT / "config" / "zones.json").read_bytes()).hexdigest()[:12]
+
+
 def daily(zones, use_llm=True, poids_source=None):
     cov = coverage(zones)
     print(f"Normales disponibles : {cov['global']} % de l'année")
@@ -43,6 +48,7 @@ def daily(zones, use_llm=True, poids_source=None):
     series = build_zone_series(zones, fc, normals)
     today = date.fromisoformat(fc["time"][30])
     data = build(zones, series, today, {"sources": SOURCES, "coverage": cov, "poids_source": poids_source}, use_llm=use_llm)
+    data["config_hash"] = config_hash()
     write_outputs(data, normals)
     print(f"OK : {len(data['zones'])} zones, {len(data['alertes'])} alerte(s).")
     extras(zones, normals)
@@ -91,8 +97,8 @@ def main() -> None:
         if latest.exists():
             prev = json.loads(latest.read_text())
             age_h = (now - datetime.fromisoformat(prev["genere_le"].replace("Z", "+00:00"))).total_seconds() / 3600
-            if [z["id"] for z in prev["zones"]] != [z["id"] for z in zones]:
-                age_h = 99  # la configuration des zones a changé : recalcul immédiat
+            if [z["id"] for z in prev["zones"]] != [z["id"] for z in zones] or prev.get("config_hash") != config_hash():
+                age_h = 99  # la configuration des zones a changé (zones, calendriers, règles) : recalcul immédiat
         if not (args.force or new_weights or new_month or now.hour == DAILY_HOUR_UTC or age_h > 23):
             print("Rien à recalculer pour l'instant.")
             if _extras_stale(now):
